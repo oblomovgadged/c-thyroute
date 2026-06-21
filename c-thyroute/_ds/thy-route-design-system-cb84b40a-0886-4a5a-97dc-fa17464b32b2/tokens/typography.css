@@ -1,0 +1,47 @@
+/* ============================================
+   THY Route — Typography Tokens
+   Outfit (UI/display) · Montserrat (headings/logo)
+   Inter (body) · JetBrains Mono (codes/IATA)
+   ============================================ */
+
+:root {
+  /* --- Families --- */
+  --font-display: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-ui: 'Outfit', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-heading: 'Montserrat', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-body: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+
+  /* --- Weights --- */
+  --fw-light: 300;       /* @kind font */
+  --fw-regular: 400;     /* @kind font */
+  --fw-medium: 500;      /* @kind font */
+  --fw-semibold: 600;    /* @kind font */
+  --fw-bold: 700;        /* @kind font */
+  --fw-extrabold: 800;   /* @kind font */
+  --fw-black: 900;       /* @kind font */
+
+  /* --- Type scale (px) --- */
+  --fs-hero: 40px;     /* Landing hero — Montserrat 900 */
+  --fs-display: 28px;  /* Section / large heading */
+  --fs-title: 22px;    /* Times, board clock — mono 800 */
+  --fs-h: 16px;        /* Card / modal titles */
+  --fs-iata: 18px;     /* IATA codes — mono 800 */
+  --fs-body: 14px;     /* Body / inputs */
+  --fs-sm: 13px;       /* Dense UI text */
+  --fs-xs: 11px;       /* Captions, helper text */
+  --fs-label: 10px;    /* Uppercase form labels */
+  --fs-chip: 9px;      /* Eyebrow chips, tab labels */
+
+  /* --- Tracking --- */
+  --ls-tight: -1px;      /* @kind font */
+  --ls-heading: -0.5px;  /* @kind font */
+  --ls-normal: 0;        /* @kind font */
+  --ls-label: 0.5px;     /* @kind font */
+  --ls-eyebrow: 2px;     /* @kind font */
+
+  /* --- Line height --- */
+  --lh-tight: 1.15;      /* @kind font */
+  --lh-snug: 1.4;        /* @kind font */
+  --lh-body: 1.6;        /* @kind font */
+}

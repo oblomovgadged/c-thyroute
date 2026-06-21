@@ -1,0 +1,358 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>THY Route — Demolar</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Montserrat:wght@700;800;900&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; min-height: 100%; }
+    body {
+      font-family: 'Outfit', system-ui, -apple-system, sans-serif;
+      background: radial-gradient(ellipse at 30% 20%, rgba(183, 49, 44, 0.18), transparent 50%),
+                  radial-gradient(ellipse at 80% 80%, rgba(197, 160, 89, 0.14), transparent 50%),
+                  linear-gradient(180deg, #0A1628 0%, #050B14 100%);
+      color: #F1E5CC;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 48px 24px;
+    }
+
+    /* Ambient grid */
+    body::before {
+      content: '';
+      position: fixed; inset: 0;
+      pointer-events: none;
+      background-image:
+        repeating-linear-gradient(0deg,  transparent 0 79px, rgba(197,160,89,0.05) 79px 80px),
+        repeating-linear-gradient(90deg, transparent 0 79px, rgba(197,160,89,0.05) 79px 80px);
+    }
+
+    .wrap {
+      width: 100%;
+      max-width: 1200px;
+      position: relative;
+      z-index: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 48px;
+    }
+
+    /* ── Header ── */
+    .crown {
+      display: inline-flex;
+      align-items: center;
+      gap: 14px;
+      padding: 10px 18px;
+      border: 1px solid rgba(197, 160, 89, 0.45);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.04);
+      backdrop-filter: blur(8px);
+      align-self: center;
+    }
+    .crown .crane {
+      width: 30px; height: 30px;
+      background: #B7312C;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      color: #F1E5CC;
+      font-family: 'Montserrat', sans-serif;
+      font-weight: 900;
+      font-size: 12px;
+    }
+    .crown .name {
+      font-family: 'Montserrat', sans-serif;
+      font-weight: 800;
+      font-size: 14px;
+      letter-spacing: 5px;
+      color: #F1E5CC;
+    }
+
+    .hero { text-align: center; display: flex; flex-direction: column; gap: 20px; align-items: center; }
+
+    .eyebrow {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      letter-spacing: 3px;
+      font-weight: 700;
+      color: #C5A059;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      margin: 0;
+      font-family: 'Outfit', sans-serif;
+      font-weight: 900;
+      font-size: clamp(48px, 8vw, 96px);
+      letter-spacing: -2px;
+      line-height: 0.98;
+      background: linear-gradient(180deg, #FFFFFF 55%, #C5A059);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .tagline {
+      font-family: 'Outfit', sans-serif;
+      font-weight: 300;
+      font-size: clamp(16px, 2.2vw, 22px);
+      color: #C9D4E2;
+      max-width: 680px;
+      line-height: 1.4;
+    }
+
+    /* ── Demo cards ── */
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 20px;
+    }
+
+    .card {
+      background: rgba(255, 255, 255, 0.045);
+      border: 1px solid rgba(197, 160, 89, 0.28);
+      border-radius: 14px;
+      padding: 28px 26px;
+      text-decoration: none;
+      color: inherit;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      position: relative;
+      overflow: hidden;
+      transition: transform 320ms cubic-bezier(.16, 1, .3, 1),
+                  border-color 280ms,
+                  box-shadow 280ms;
+      backdrop-filter: blur(6px);
+    }
+
+    .card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, var(--accent, transparent) 0%, transparent 60%);
+      opacity: 0;
+      transition: opacity 280ms;
+      pointer-events: none;
+    }
+
+    .card:hover {
+      transform: translateY(-4px);
+      border-color: rgba(197, 160, 89, 0.6);
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4),
+                  0 0 20px rgba(197, 160, 89, 0.2);
+    }
+    .card:hover::before { opacity: 0.12; }
+
+    .card .num {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 2.5px;
+      color: #C5A059;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .card .num::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: linear-gradient(90deg, #C5A059, transparent);
+      opacity: 0.5;
+    }
+
+    .card .glyph {
+      width: 60px;
+      height: 60px;
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+      background: linear-gradient(135deg, var(--accent, #B7312C) 0%, rgba(0, 0, 0, 0.2) 100%);
+      color: #fff;
+      box-shadow: 0 12px 24px rgba(0, 0, 0, 0.32);
+    }
+
+    .card h2 {
+      margin: 0;
+      font-family: 'Outfit', sans-serif;
+      font-weight: 800;
+      font-size: 26px;
+      letter-spacing: -0.6px;
+      color: #FFFFFF;
+    }
+
+    .card p {
+      margin: 0;
+      font-family: 'Inter', sans-serif;
+      font-size: 14px;
+      line-height: 1.55;
+      color: #B6C2D4;
+      flex: 1;
+    }
+
+    .card .meta {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 4px;
+    }
+    .card .chip {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9px;
+      font-weight: 800;
+      letter-spacing: 1.5px;
+      padding: 4px 8px;
+      border-radius: 4px;
+      background: rgba(197, 160, 89, 0.14);
+      color: #C5A059;
+      border: 1px solid rgba(197, 160, 89, 0.32);
+    }
+
+    .card .cta {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-top: 16px;
+      border-top: 1px solid rgba(197, 160, 89, 0.16);
+      font-family: 'Outfit', sans-serif;
+      font-size: 14px;
+      font-weight: 600;
+      color: #F4D589;
+    }
+
+    .card .arrow {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: rgba(197, 160, 89, 0.16);
+      border: 1px solid rgba(197, 160, 89, 0.4);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #F4D589;
+      transition: transform 280ms cubic-bezier(.16, 1, .3, 1),
+                  background 280ms;
+    }
+    .card:hover .arrow {
+      transform: translateX(4px);
+      background: rgba(183, 49, 44, 0.32);
+      border-color: rgba(183, 49, 44, 0.6);
+      color: #fff;
+    }
+
+    /* ── Footer ── */
+    footer {
+      border-top: 1px solid rgba(197, 160, 89, 0.14);
+      padding-top: 24px;
+      margin-top: 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      letter-spacing: 1.5px;
+      color: rgba(197, 160, 89, 0.65);
+    }
+    footer a {
+      color: rgba(197, 160, 89, 0.85);
+      text-decoration: none;
+      font-weight: 700;
+    }
+    footer a:hover { color: #F4D589; }
+
+    @media (max-width: 640px) {
+      body { padding: 32px 16px; }
+      .wrap { gap: 32px; }
+      .card { padding: 22px 20px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header class="hero">
+      <div class="crown">
+        <div class="crane">★</div>
+        <div class="name">THY ROUTE</div>
+      </div>
+      <span class="eyebrow">✦ Demolar · Tıklanabilir Prototip ✦</span>
+      <h1>thy route</h1>
+      <p class="tagline">
+        Bir biletten bir seyahat ekosistemine.
+        Üç yüzeyi de canlı olarak deneyimleyin — kullanıcı web, kullanıcı mobil, ve yönetici cockpit.
+      </p>
+    </header>
+
+    <section class="grid">
+      <!-- Web Sitesi -->
+      <a class="card" href="Web Sitesi.html" style="--accent: #0053A5;">
+        <div class="num">01 — KULLANICI · WEB</div>
+        <div class="glyph">🌐</div>
+        <h2>Kullanıcı Web Sitesi</h2>
+        <p>turkishairlines.com inspired aydınlık portal + koyu cockpit. 28 ekran: uçuş ara, Türkiye Turu, rota planlama, Co-Pilot, fiyat alarmı, pasaport, ödeme.</p>
+        <div class="meta">
+          <span class="chip">28 EKRAN</span>
+          <span class="chip">TR · EN</span>
+        </div>
+        <div class="cta">
+          Web demoyu aç
+          <span class="arrow">→</span>
+        </div>
+      </a>
+
+      <!-- Mobil Uygulama -->
+      <a class="card" href="Mobil Uygulama.html" style="--accent: #B7312C;">
+        <div class="num">02 — KULLANICI · MOBİL</div>
+        <div class="glyph">📱</div>
+        <h2>Kullanıcı Mobil Uygulama</h2>
+        <p>iOS + Android device çerçevelerinde tüm web akışının mobile-first karşılığı. Aynı state, aynı tercihler, aynı rota — telefonda canlı.</p>
+        <div class="meta">
+          <span class="chip">iOS · ANDROID</span>
+          <span class="chip">28 EKRAN</span>
+        </div>
+        <div class="cta">
+          Mobil demoyu aç
+          <span class="arrow">→</span>
+        </div>
+      </a>
+
+      <!-- Yönetici Ekranı -->
+      <a class="card" href="Yönetici Ekranı.html" style="--accent: #C5A059;">
+        <div class="num">03 — YÖNETİCİ · EXECUTIVE</div>
+        <div class="glyph">📊</div>
+        <h2>Yönetici Ekranı</h2>
+        <p>THY ekibi için executive cockpit. Rota dağılımı, M&S partner geliri, fiyat alarmı dönüşüm hunisi, sadakat segmenti — gerçek-zamanlı KPI'lar.</p>
+        <div class="meta">
+          <span class="chip">DASHBOARD</span>
+          <span class="chip">KPI</span>
+        </div>
+        <div class="cta">
+          Yönetici cockpit'i aç
+          <span class="arrow">→</span>
+        </div>
+      </a>
+    </section>
+
+    <footer>
+      <span>THY ROUTE · 2026</span>
+      <span>
+        <a href="README.md">README</a>
+        &nbsp;·&nbsp;
+        <a href="FLOW.md">FLOW</a>
+        &nbsp;·&nbsp;
+        <a href="MOBIL-FLOW.md">MOBİL FLOW</a>
+      </span>
+    </footer>
+  </div>
+</body>
+</html>

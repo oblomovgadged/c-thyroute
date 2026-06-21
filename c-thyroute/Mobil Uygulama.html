@@ -1,0 +1,247 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <!-- Leaflet (OpenStreetMap) for the rota destination map -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+  <title>THY Route — Mobil Uygulama Prototip</title>
+  <link rel="icon" href="assets/thy-favicon.svg" />
+
+  <!-- Design system tokens + styles -->
+  <link rel="stylesheet" href="_ds/thy-route-design-system-cb84b40a-0886-4a5a-97dc-fa17464b32b2/tokens/fonts.css" />
+
+  <!-- B-group screens use their own aesthetics, mixed in -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,700;0,900;1,500&family=EB+Garamond:ital,wght@0,400;0,500;1,400&family=Space+Grotesk:wght@400;500;600;700&family=DM+Mono:wght@400;500&family=Bebas+Neue&display=swap" rel="stylesheet" />
+
+  <link rel="stylesheet" href="_ds/thy-route-design-system-cb84b40a-0886-4a5a-97dc-fa17464b32b2/tokens/colors.css" />
+  <link rel="stylesheet" href="_ds/thy-route-design-system-cb84b40a-0886-4a5a-97dc-fa17464b32b2/tokens/typography.css" />
+  <link rel="stylesheet" href="_ds/thy-route-design-system-cb84b40a-0886-4a5a-97dc-fa17464b32b2/tokens/spacing.css" />
+  <link rel="stylesheet" href="_ds/thy-route-design-system-cb84b40a-0886-4a5a-97dc-fa17464b32b2/styles.css" />
+
+  <style>
+    html, body { margin: 0; padding: 0; background: #EEF1F5; font-family: var(--font-ui); color: var(--text-on-light); }
+    body { min-height: 100vh; }
+    * { box-sizing: border-box; }
+
+    /* Toast animation */
+    @keyframes toast-pop {
+      from { opacity: 0; transform: translateY(8px) scale(0.95); }
+      to   { opacity: 1; transform: none; }
+    }
+    .toast-pop { animation: toast-pop 260ms cubic-bezier(.16,1,.3,1); }
+    @keyframes thyDotBlink { 0%,100% { opacity: 1 } 50% { opacity: 0.3 } }
+
+    /* QR scanner animations */
+    @keyframes qrScan {
+      0%   { top: 8%;  opacity: 0.55; }
+      50%  { top: 92%; opacity: 1;    }
+      100% { top: 8%;  opacity: 0.55; }
+    }
+    @keyframes qrSheet {
+      from { opacity: 0; transform: translateY(36px); }
+      to   { opacity: 1; transform: none; }
+    }
+    @keyframes qrFoundPulse {
+      0%   { opacity: 0; transform: scale(0.96); }
+      60%  { opacity: 1; transform: scale(1.02); }
+      100% { opacity: 0.55; transform: scale(1); }
+    }
+
+    /* PNR modal animations */
+    @keyframes pnrFade { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes pnrPop {
+      from { opacity: 0; transform: translateY(12px) scale(0.96); }
+      to   { opacity: 1; transform: none; }
+    }
+    @keyframes pnrSpin { to { transform: rotate(360deg); } }
+    @keyframes pnrCaret { 0%,100% { opacity: 1 } 50% { opacity: 0 } }
+
+    /* Page background — subtle navy gradient with route map watermark */
+    .stage {
+      min-height: 100vh;
+      background:
+        radial-gradient(120% 80% at 20% 0%, rgba(0,83,165,0.10) 0%, transparent 55%),
+        radial-gradient(80% 60% at 90% 100%, rgba(183,49,44,0.07) 0%, transparent 60%),
+        #EEF1F5;
+      padding: 28px 32px 64px;
+    }
+
+    /* Toolbar */
+    .toolbar {
+      display: flex; align-items: center; gap: 18px; flex-wrap: wrap;
+      padding: 14px 18px; margin-bottom: 22px;
+      background: #fff; border: 1px solid var(--border-light);
+      border-radius: var(--radius-lg); box-shadow: 0 6px 24px rgba(10,22,40,0.06);
+    }
+    .toolbar-brand {
+      display: flex; align-items: center; gap: 10px;
+      padding-right: 16px; border-right: 1px solid var(--border-light);
+    }
+    .toolbar-brand img { width: 28px; height: 28px; }
+    .toolbar-brand-title {
+      font-family: var(--font-heading); font-weight: 800;
+      font-size: 14px; letter-spacing: 1.2px; color: var(--thy-navy);
+    }
+    .toolbar-brand-sub {
+      font-family: var(--font-mono); font-size: 9px; letter-spacing: 1.5px;
+      text-transform: uppercase; color: var(--text-on-light-muted);
+    }
+    .toolbar-screens {
+      display: flex; gap: 6px; flex-wrap: wrap; flex: 1; min-width: 0;
+    }
+    .screen-chip {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 8px 12px; font-size: 11px; font-weight: 700;
+      font-family: var(--font-ui); letter-spacing: 0.3px;
+      background: #F3F5F8; color: var(--text-on-light-muted);
+      border: 1px solid transparent; border-radius: 999px;
+      cursor: pointer; transition: all 180ms cubic-bezier(.4,0,.2,1);
+      white-space: nowrap;
+    }
+    .screen-chip:hover { background: #EBF1F9; color: var(--thy-navy); }
+    .screen-chip.is-active {
+      background: var(--thy-navy); color: #fff;
+      border-color: var(--thy-navy);
+      box-shadow: 0 6px 16px rgba(10,22,40,0.25);
+    }
+    .screen-chip .num {
+      font-family: var(--font-mono); font-size: 9px; opacity: 0.6;
+    }
+    .screen-chip.is-active .num { opacity: 0.7; }
+
+    /* Device pair stage */
+    .devices {
+      display: flex; gap: 56px; align-items: flex-start; justify-content: center;
+      padding: 28px 0 8px; flex-wrap: wrap;
+    }
+    .device-frame {
+      display: flex; flex-direction: column; align-items: center; gap: 14px;
+    }
+    .device-label {
+      font-family: var(--font-mono); font-size: 10px; letter-spacing: 2px;
+      text-transform: uppercase; color: var(--text-on-light-muted);
+      padding: 6px 12px; background: #fff; border: 1px solid var(--border-light);
+      border-radius: 999px;
+    }
+
+    /* Screen meta panel */
+    .meta {
+      max-width: 720px; margin: 36px auto 0;
+      padding: 22px 26px; background: #fff;
+      border: 1px solid var(--border-light); border-radius: var(--radius-lg);
+      box-shadow: 0 8px 28px rgba(10,22,40,0.06);
+    }
+    .meta-eyebrow {
+      font-family: var(--font-mono); font-size: 10px; letter-spacing: 2.5px;
+      text-transform: uppercase; color: var(--thy-red);
+      margin-bottom: 8px;
+    }
+    .meta-title {
+      font-family: var(--font-heading); font-weight: 800;
+      font-size: 22px; color: var(--thy-navy); margin: 0 0 8px;
+      letter-spacing: -0.3px;
+    }
+    .meta-desc {
+      font-size: 14px; line-height: 1.6; color: var(--text-on-light-muted);
+      margin: 0;
+    }
+
+    /* Inside-phone shared: prevent global font from breaking iOS frame typography */
+    .thy-screen { font-family: var(--font-ui); color: var(--thy-navy); overflow-x: hidden; }
+    .thy-screen.is-dark { color: #fff; }
+    /* Hide horizontal scrollbars inside horizontal carousels */
+    .thy-screen ::-webkit-scrollbar { display: none; }
+    .thy-screen * { scrollbar-width: none; }
+
+    /* Screen transition */
+    @keyframes thy-fadeUp {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: none; }
+    }
+    .screen-enter { animation: thy-fadeUp 380ms cubic-bezier(.16,1,.3,1); }
+
+    /* Plane glide along boarding pass / route */
+    @keyframes thy-plane {
+      0%,100% { left: 6%; opacity: .6 }
+      50% { left: 86%; opacity: 1 }
+    }
+
+    /* Pulse for live status dot */
+    @keyframes thy-pulse {
+      0%,100% { box-shadow: 0 0 0 0 rgba(34,197,94,0.5); }
+      50% { box-shadow: 0 0 0 6px rgba(34,197,94,0); }
+    }
+    @keyframes nfcRing {
+      0%   { transform: scale(0.6); opacity: 0.6; }
+      100% { transform: scale(1.6); opacity: 0; }
+    }
+
+    /* Shimmer for boarding pass QR area */
+    @keyframes thy-shimmer {
+      0% { background-position: -200% 0; }
+      100% { background-position: 200% 0; }
+    }
+
+    /* Subtle floating clouds in splash */
+    @keyframes thy-drift {
+      from { transform: translateX(-10%); }
+      to   { transform: translateX(10%); }
+    }
+
+    /* Leaflet container styling for mobile rota map */
+    .thy-screen .leaflet-container { background: #101a2b; font-family: var(--font-ui, system-ui); }
+    .thy-screen .leaflet-control-zoom { margin: 10px !important; }
+    .thy-screen .leaflet-control-zoom a {
+      background: rgba(10,22,40,0.9) !important; color: #C5A059 !important;
+      border: 1px solid rgba(197,160,89,0.3) !important; width: 26px !important; height: 26px !important;
+      line-height: 24px !important; font-size: 14px !important;
+      backdrop-filter: blur(8px);
+    }
+    .thy-screen .leaflet-control-attribution {
+      background: rgba(10,22,40,0.7) !important; color: #B2C0D1 !important;
+      font-family: var(--font-mono, monospace) !important; font-size: 8px !important;
+    }
+    .thy-screen .leaflet-control-attribution a { color: #C5A059 !important; }
+    @keyframes thy-spin { to { transform: rotate(360deg); } }
+    @keyframes thy-fade-up {
+      from { opacity: 0; transform: translateY(12px); }
+      to   { opacity: 1; transform: none; }
+    }
+  </style>
+
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+  <!-- Frames + tweaks panel + screens -->
+  <script type="text/babel" src="ios-frame.jsx"></script>
+  <script type="text/babel" src="android-frame.jsx"></script>
+  <script type="text/babel" src="tweaks-panel.jsx"></script>
+  <script type="text/babel" src="ds-components.jsx"></script>
+  <script type="text/babel" src="booking-store.jsx"></script>
+  <script type="text/babel" src="ui-bits.jsx"></script>
+  <script type="text/babel" src="web-destinations.jsx"></script>
+  <script type="text/babel" src="web-destinations-poi.jsx"></script>
+  <script type="text/babel" src="web-route-map.jsx"></script>
+  <script type="text/babel" src="ms-partners.jsx"></script>
+  <script type="text/babel" src="mobile-route-collab.jsx"></script>
+  <script type="text/babel" src="screens-a.jsx"></script>
+  <script type="text/babel" src="screens-b.jsx"></script>
+  <script type="text/babel" src="screens-c.jsx"></script>
+  <script type="text/babel" src="screens-d.jsx"></script>
+  <script type="text/babel" src="screens-e.jsx"></script>
+  <script type="text/babel" src="screens-f.jsx"></script>
+  <script type="text/babel" src="screens-routes.jsx"></script>
+  <script type="text/babel" src="travel-prefs.jsx"></script>
+  <script type="text/babel" src="pnr-modal.jsx"></script>
+  <script type="text/babel" src="main.jsx"></script>
+</head>
+<body>
+  <div id="root"></div>
+</body>
+</html>

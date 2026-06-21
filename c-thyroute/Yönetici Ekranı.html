@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>THY Route — Yönetici Ekranı (Executive Cockpit)</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Montserrat:wght@600;700;800;900&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap" />
+
+  <style>
+    :root {
+      --font-ui: 'Outfit', system-ui, sans-serif;
+      --font-heading: 'Outfit', system-ui, sans-serif;
+      --font-display: 'Montserrat', system-ui, sans-serif;
+      --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+      --font-body: 'Inter', system-ui, sans-serif;
+    }
+    *, *::before, *::after { box-sizing: border-box; }
+    html, body, #root { margin: 0; padding: 0; }
+    html { background: #050B14; }
+    body {
+      font-family: var(--font-ui);
+      color: #fff;
+      background: #050B14;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+    /* Custom scrollbar in main panel */
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(255,255,255,0.08);
+      border-radius: 999px;
+    }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(197,160,89,0.4); }
+
+    /* Animations */
+    @keyframes thy-pulse {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50%      { transform: scale(1.6); opacity: 0.4; }
+    }
+    @keyframes thy-fade-up {
+      from { opacity: 0; transform: translateY(12px); }
+      to   { opacity: 1; transform: none; }
+    }
+    section { animation: thy-fade-up 600ms cubic-bezier(.16,1,.3,1); }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation: none !important; transition: none !important; }
+    }
+
+    /* Print: hide top bar + sidebar, white background, slate text */
+    @media print {
+      @page { size: A3 landscape; margin: 14mm; }
+      html, body { background: #fff !important; color: #0A1628 !important; }
+      header, aside, button { display: none !important; }
+      main { display: block !important; }
+      section { break-inside: avoid; page-break-inside: avoid; margin-bottom: 18px; }
+      [style*="background:"] {
+        /* let chrome render dark cards; user can flip "Background graphics" on print preview */
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <!-- React + Babel -->
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+  <!-- Admin modules — order matters: data → charts → sections → shell -->
+  <script type="text/babel" src="admin-data.jsx"></script>
+  <script type="text/babel" src="admin-charts.jsx"></script>
+  <script type="text/babel" src="admin-sections.jsx"></script>
+  <script type="text/babel" src="admin-shell.jsx"></script>
+</body>
+</html>

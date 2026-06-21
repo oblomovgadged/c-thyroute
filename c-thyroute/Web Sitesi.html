@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <!-- Leaflet (OpenStreetMap) for the route map -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+  <title>THY Route — Web Sitesi Prototip</title>
+  <link rel="icon" href="assets/thy-favicon.svg" />
+
+  <!-- Design system tokens + styles -->
+  <link rel="stylesheet" href="_ds/thy-route-design-system-cb84b40a-0886-4a5a-97dc-fa17464b32b2/tokens/fonts.css" />
+
+  <!-- Editorial fonts for B-group screens (preserved from mobile) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,700;0,900;1,500&family=EB+Garamond:ital,wght@0,400;0,500;1,400&family=Space+Grotesk:wght@400;500;600;700&family=DM+Mono:wght@400;500&family=Bebas+Neue&display=swap" rel="stylesheet" />
+
+  <link rel="stylesheet" href="_ds/thy-route-design-system-cb84b40a-0886-4a5a-97dc-fa17464b32b2/tokens/colors.css" />
+  <link rel="stylesheet" href="_ds/thy-route-design-system-cb84b40a-0886-4a5a-97dc-fa17464b32b2/tokens/typography.css" />
+  <link rel="stylesheet" href="_ds/thy-route-design-system-cb84b40a-0886-4a5a-97dc-fa17464b32b2/tokens/spacing.css" />
+  <link rel="stylesheet" href="_ds/thy-route-design-system-cb84b40a-0886-4a5a-97dc-fa17464b32b2/styles.css" />
+
+  <style>
+    html, body { margin: 0; padding: 0; background: #EEF1F5; font-family: var(--font-ui); color: var(--text-on-light); }
+    body { min-height: 100vh; }
+    * { box-sizing: border-box; }
+
+    /* Stage that hosts the simulated viewport */
+    .web-stage {
+      min-height: 100vh; padding: 22px 22px 64px;
+      background:
+        radial-gradient(120% 80% at 20% 0%, rgba(0,83,165,0.10) 0%, transparent 55%),
+        radial-gradient(80% 60% at 90% 100%, rgba(183,49,44,0.07) 0%, transparent 60%),
+        #EEF1F5;
+    }
+
+    /* Browser-chrome-less "device" container — top bar shows viewport mode */
+    .viewport-bar {
+      display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+      padding: 12px 18px; margin: 0 auto 18px; max-width: 1640px;
+      background: #fff; border: 1px solid var(--border-light);
+      border-radius: 14px; box-shadow: 0 6px 24px rgba(10,22,40,0.06);
+    }
+    .vp-brand { display: flex; align-items: center; gap: 10px; padding-right: 14px; border-right: 1px solid var(--border-light); }
+    .vp-brand img { width: 26px; height: 26px; }
+    .vp-title { font-family: var(--font-heading); font-weight: 800; font-size: 13px; letter-spacing: 1.1px; color: var(--thy-navy); }
+    .vp-sub { font-family: var(--font-mono); font-size: 9px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--text-on-light-muted); }
+    .vp-chips { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+    .vp-chip {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 7px 11px; font-size: 11px; font-weight: 700;
+      font-family: var(--font-ui); letter-spacing: 0.3px;
+      background: #F3F5F8; color: var(--text-on-light-muted);
+      border: 1px solid transparent; border-radius: 999px;
+      cursor: pointer; transition: all 180ms cubic-bezier(.4,0,.2,1);
+      white-space: nowrap;
+    }
+    .vp-chip:hover { background: #EBF1F9; color: var(--thy-navy); }
+    .vp-chip.is-active {
+      background: var(--thy-navy); color: #fff; border-color: var(--thy-navy);
+      box-shadow: 0 4px 12px rgba(10,22,40,0.22);
+    }
+    .vp-screen-select { margin-left: auto; min-width: 0; }
+
+    /* Browser frame that holds the page content at the chosen viewport width */
+    .browser-frame {
+      margin: 0 auto;
+      background: #fff; border: 1px solid #E2E8F0; border-radius: 16px;
+      box-shadow: 0 24px 60px rgba(10,22,40,0.18), 0 1px 0 rgba(255,255,255,0.5) inset;
+      overflow: hidden;
+      transition: max-width 320ms cubic-bezier(.16,1,.3,1);
+    }
+    .browser-chrome {
+      display: flex; align-items: center; gap: 12px;
+      padding: 12px 16px; background: #F8FAFC; border-bottom: 1px solid #E2E8F0;
+    }
+    .browser-dots { display: flex; gap: 6px; }
+    .browser-dots span { width: 11px; height: 11px; border-radius: 50%; display: inline-block; }
+    .browser-dots span:nth-child(1) { background: #FF5F57; }
+    .browser-dots span:nth-child(2) { background: #FEBC2E; }
+    .browser-dots span:nth-child(3) { background: #28C840; }
+    .browser-address {
+      flex: 1; display: flex; align-items: center; gap: 8px;
+      padding: 7px 12px; background: #fff; border: 1px solid #E2E8F0;
+      border-radius: 8px; font-family: var(--font-mono); font-size: 12px; color: #64748B;
+    }
+    .browser-address .dot { width: 6px; height: 6px; border-radius: 50%; background: #22C55E; }
+    .browser-tools { display: flex; gap: 8px; color: #94A3B8; }
+
+    /* Page content scroll area */
+    .browser-body {
+      overflow: auto;
+      max-height: 1200px;
+      /* hide scrollbar */
+      scrollbar-width: thin;
+    }
+    .browser-body::-webkit-scrollbar { width: 8px; }
+    .browser-body::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 4px; }
+
+    /* Screen entry animation */
+    @keyframes web-fadeUp {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: none; }
+    }
+    .web-screen-enter { animation: web-fadeUp 420ms cubic-bezier(.16,1,.3,1); }
+
+    /* Plane glide */
+    @keyframes thy-plane {
+      0%,100% { left: 6%; opacity: .6 }
+      50% { left: 86%; opacity: 1 }
+    }
+
+    /* Pulse */
+    @keyframes thy-pulse {
+      0%,100% { box-shadow: 0 0 0 0 rgba(34,197,94,0.5); }
+      50% { box-shadow: 0 0 0 6px rgba(34,197,94,0); }
+    }
+    @keyframes nfcRing {
+      0%   { transform: scale(0.6); opacity: 0.6; }
+      100% { transform: scale(1.6); opacity: 0; }
+    }
+    @keyframes toast-pop {
+      from { opacity: 0; transform: translateY(8px) scale(0.95); }
+      to   { opacity: 1; transform: none; }
+    }
+    .toast-pop { animation: toast-pop 260ms cubic-bezier(.16,1,.3,1); }
+    @keyframes thyDotBlink { 0%,100% { opacity: 1 } 50% { opacity: 0.3 } }
+    @keyframes thy-drift {
+      from { transform: translateX(-10%); }
+      to   { transform: translateX(10%); }
+    }
+
+    /* PNR modal animations */
+    @keyframes pnrFade { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes pnrPop {
+      from { opacity: 0; transform: translateY(12px) scale(0.96); }
+      to   { opacity: 1; transform: none; }
+    }
+    @keyframes pnrSpin { to { transform: rotate(360deg); } }
+    @keyframes pnrCaret { 0%,100% { opacity: 1 } 50% { opacity: 0 } }
+    @keyframes thy-spin { to { transform: rotate(360deg); } }
+    @keyframes thy-fade-up {
+      from { opacity: 0; transform: translateY(12px); }
+      to   { opacity: 1; transform: none; }
+    }
+    /* Leaflet container needs explicit height inside grid cells */
+    .leaflet-container { background: #101a2b; font-family: var(--font-ui, system-ui); }
+    .leaflet-control-zoom { margin-top: 80px !important; margin-right: 16px !important; }
+    .leaflet-control-zoom a {
+      background: rgba(10,22,40,0.9) !important; color: #C5A059 !important;
+      border: 1px solid rgba(197,160,89,0.3) !important;
+      backdrop-filter: blur(8px);
+    }
+    .leaflet-control-zoom a:hover { background: rgba(10,22,40,1) !important; color: #fff !important; }
+    .leaflet-control-attribution {
+      background: rgba(10,22,40,0.7) !important; color: #B2C0D1 !important;
+      font-family: var(--font-mono, monospace) !important; font-size: 9px !important;
+    }
+    .leaflet-control-attribution a { color: #C5A059 !important; }
+
+    /* Premium POI pin hover effect */
+    .thy-poi-icon { transition: transform 200ms cubic-bezier(.16,1,.3,1); }
+    .thy-poi-icon:hover { transform: scale(1.12); z-index: 1001 !important; }
+    .thy-poi-icon .thy-pin-wrap,
+    .thy-poi-icon > div:first-child { transform-origin: center bottom; }
+  </style>
+
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+  <!-- Reuse mobile's DS component port + tweaks panel + icon helpers -->
+  <script type="text/babel" src="tweaks-panel.jsx"></script>
+  <script type="text/babel" src="ds-components.jsx"></script>
+  <script type="text/babel" src="ui-bits.jsx"></script>
+
+  <!-- Web shell + screens -->
+  <script type="text/babel" src="web-booking-store.jsx"></script>
+  <script type="text/babel" src="web-destinations.jsx"></script>
+  <script type="text/babel" src="web-destinations-poi.jsx"></script>
+  <script type="text/babel" src="web-route-map.jsx"></script>
+  <script type="text/babel" src="ms-partners.jsx"></script>
+  <script type="text/babel" src="web-ui-bits.jsx"></script>
+  <script type="text/babel" src="web-screens-a.jsx"></script>
+  <script type="text/babel" src="web-screens-b.jsx"></script>
+  <script type="text/babel" src="web-screens-c.jsx"></script>
+  <script type="text/babel" src="web-screens-d.jsx"></script>
+  <script type="text/babel" src="web-screens-e.jsx"></script>
+  <script type="text/babel" src="web-screens-tkpay.jsx"></script>
+  <script type="text/babel" src="web-screens-routes.jsx"></script>
+  <script type="text/babel" src="travel-prefs.jsx"></script>
+  <script type="text/babel" src="pnr-modal.jsx"></script>
+  <script type="text/babel" src="web-main.jsx"></script>
+</head>
+<body>
+  <div id="root"></div>
+</body>
+</html>

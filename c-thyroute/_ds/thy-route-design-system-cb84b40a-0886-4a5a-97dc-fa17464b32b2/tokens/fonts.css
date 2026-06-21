@@ -1,0 +1,13 @@
+/* ============================================
+   THY Route — Webfonts
+   All four families are available on Google Fonts.
+   Loaded via @import so the @font-face declarations
+   are resolved by the browser at runtime.
+   --------------------------------------------
+   Outfit       — primary UI / display
+   Montserrat   — headings, logotype (800)
+   Inter        — body copy, descriptions
+   JetBrains Mono — flight codes, IATA, coordinates
+   ============================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800;900&family=Outfit:wght@300;400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap');

@@ -1,0 +1,73 @@
+/* ============================================
+   THY Route — Color Tokens
+   "Airy Premium" / Business Class palette.
+   Rule: never pure #000 or #FFF on dark surfaces —
+   every color carries a transition or opacity.
+   ============================================ */
+
+:root {
+  /* --- Brand (THY Corporate Identity) --- */
+  --thy-red: #B7312C;          /* Official THY Red — Pantone 7620 C */
+  --thy-red-dark: #8E211D;     /* Darker red — hover / active */
+  --thy-red-light: #EF2E1F;    /* Attention red — CTAs, alerts */
+  --thy-red-bright: #E31837;   /* Bright corporate red — accents, dots */
+  --thy-blue: #0053A5;         /* French Blue — Pantone 2145 C */
+  --thy-navy: #0A1628;         /* Business Class deep navy */
+  --thy-navy-light: #132237;   /* Elevated dark layer */
+  --thy-gold: #C5A059;         /* Premium rose gold */
+  --thy-gold-light: #D9BE84;   /* Light gold — highlights, hover */
+  --thy-white: #FFFFFF;
+  --thy-black: #000000;
+
+  /* --- Backgrounds (dark "cockpit" surfaces) --- */
+  --bg-dark: var(--thy-navy);
+  --bg-primary: var(--thy-navy);
+  --bg-secondary: #050B14;     /* Deepest navy — map overlay */
+  --bg-card: var(--thy-navy-light);
+  --bg-card-hover: #1B2F4C;
+  --bg-glass: rgba(10, 22, 40, 0.88);
+  --bg-glass-light: rgba(19, 34, 55, 0.7);
+
+  /* --- Airy Premium panel layers --- */
+  --panel-surface: #0F2244;    /* Side panel base */
+  --panel-surface-2: #0B1A33;  /* Deeper layer */
+  --card-glass: rgba(255, 255, 255, 0.045);  /* Ultra-thin glass card */
+  --card-glass-hover: rgba(255, 255, 255, 0.075);
+  --card-border: rgba(255, 255, 255, 0.085);
+  --card-border-hover: rgba(197, 160, 89, 0.22);
+
+  /* --- Light surfaces (booking portal) --- */
+  --surface-light: #FFFFFF;
+  --surface-light-2: #F3F5F8;  /* Inline form track */
+  --surface-light-3: #EBF1F9;  /* Hovered cell */
+  --border-light: #E2E8F0;
+  --text-on-light: var(--thy-navy);
+  --text-on-light-muted: #64748B;
+  --text-on-light-faint: #94A3B8;
+
+  /* --- Text --- */
+  --text-main: #FFFFFF;
+  --text-primary: var(--text-main);
+  --text-secondary: #B2C0D1;   /* Soft slate-blue body */
+  --text-muted: #7A8EAF;       /* Secondary labels */
+  --text-accent: var(--thy-red);
+
+  /* --- Borders --- */
+  --border-subtle: #223754;
+  --route-glow: rgba(183, 49, 44, 0.4);
+
+  /* --- Semantic status --- */
+  --status-success: #22C55E;
+  --status-success-soft: #10B981;
+  --status-warning: #FF8C00;
+  --status-error: var(--thy-red-light);
+  --status-info: var(--thy-gold);
+
+  /* --- Fare family accents (live THY API) --- */
+  --fare-ecofly: #4CA7BB;
+  --fare-extrafly: #316C79;
+  --fare-flexfly: #144A93;
+  --fare-primefly: #0B284F;
+  --fare-businessfly: #BA7655;
+  --fare-businessprime: #794C37;
+}

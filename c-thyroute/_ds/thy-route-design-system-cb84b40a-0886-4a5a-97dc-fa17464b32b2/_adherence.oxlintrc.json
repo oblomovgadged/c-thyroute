@@ -1,0 +1,373 @@
+{
+  "plugins": [
+    "react",
+    "import"
+  ],
+  "rules": {
+    "react/forbid-elements": [
+      "warn",
+      {
+        "forbid": []
+      }
+    ],
+    "no-restricted-imports": [
+      "warn",
+      {
+        "patterns": [
+          {
+            "group": [
+              "components/core/**",
+              "components/travel/**",
+              "ui_kits/booking_portal/**",
+              "ui_kits/cockpit/**"
+            ],
+            "message": "Import design-system components from 'index.js', not component internals."
+          }
+        ]
+      }
+    ],
+    "no-restricted-syntax": [
+      "warn",
+      {
+        "selector": "Literal[value=/#[0-9a-fA-F]{3,8}\\b/]",
+        "message": "Raw hex color — use a design-system color token via var()."
+      },
+      {
+        "selector": "Literal[value=/\\b\\d+px\\b/]",
+        "message": "Raw px value — use a design-system spacing token via var()."
+      },
+      {
+        "selector": "Literal[value=/font-family\\s*:\\s*(?!['\\\"]?(?:Montserrat|Outfit|Inter|JetBrains Mono))/i]",
+        "message": "Font not provided by the design system. Available: Montserrat, Outfit, Inter, JetBrains Mono."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='Badge'] > JSXAttribute > JSXIdentifier[name!=/^(?:variant|children|key|ref|className|style|children)$/]",
+        "message": "<Badge> doesn't accept that prop. Declared props: variant, children."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='Badge'] > JSXAttribute[name.name='variant'] > Literal[value!=/^(?:status|gold|outbound|inbound|red|mono)$/]",
+        "message": "<Badge> variant must be one of 'status' | 'gold' | 'outbound' | 'inbound' | 'red' | 'mono'."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='BoardingPass'] > JSXAttribute > JSXIdentifier[name!=/^(?:flightCode|fromCode|toCode|fromCity|toCity|style|key|ref|className|style|children)$/]",
+        "message": "<BoardingPass> doesn't accept that prop. Declared props: flightCode, fromCode, toCode, fromCity, toCity, style."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='Button'] > JSXAttribute > JSXIdentifier[name!=/^(?:variant|size|fullWidth|disabled|icon|children|key|ref|className|style|children)$/]",
+        "message": "<Button> doesn't accept that prop. Declared props: variant, size, fullWidth, disabled, icon, children."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='Button'] > JSXAttribute[name.name='variant'] > Literal[value!=/^(?:primary|secondary|gold|search)$/]",
+        "message": "<Button> variant must be one of 'primary' | 'secondary' | 'gold' | 'search'."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='Button'] > JSXAttribute[name.name='size'] > Literal[value!=/^(?:sm|md|lg)$/]",
+        "message": "<Button> size must be one of 'sm' | 'md' | 'lg'."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='Card'] > JSXAttribute > JSXIdentifier[name!=/^(?:variant|interactive|children|key|ref|className|style|children)$/]",
+        "message": "<Card> doesn't accept that prop. Declared props: variant, interactive, children."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='Card'] > JSXAttribute[name.name='variant'] > Literal[value!=/^(?:glass|solid|light)$/]",
+        "message": "<Card> variant must be one of 'glass' | 'solid' | 'light'."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='Chip'] > JSXAttribute > JSXIdentifier[name!=/^(?:active|icon|children|key|ref|className|style|children)$/]",
+        "message": "<Chip> doesn't accept that prop. Declared props: active, icon, children."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='Fare'] > JSXAttribute > JSXIdentifier[name!=/^(?:name|price|color|key|ref|className|style|children)$/]",
+        "message": "<Fare> doesn't accept that prop. Declared props: name, price, color."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='Input'] > JSXAttribute > JSXIdentifier[name!=/^(?:label|mono|wrapStyle|key|ref|className|style|children)$/]",
+        "message": "<Input> doesn't accept that prop. Declared props: label, mono, wrapStyle."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='PartnerItem'] > JSXAttribute > JSXIdentifier[name!=/^(?:name|offer|icon|actionLabel|onAction|style|key|ref|className|style|children)$/]",
+        "message": "<PartnerItem> doesn't accept that prop. Declared props: name, offer, icon, actionLabel, onAction, style."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='TabItem'] > JSXAttribute > JSXIdentifier[name!=/^(?:id|label|icon|key|ref|className|style|children)$/]",
+        "message": "<TabItem> doesn't accept that prop. Declared props: id, label, icon."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='Toast'] > JSXAttribute > JSXIdentifier[name!=/^(?:type|icon|children|key|ref|className|style|children)$/]",
+        "message": "<Toast> doesn't accept that prop. Declared props: type, icon, children."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='Toast'] > JSXAttribute[name.name='type'] > Literal[value!=/^(?:success|error|info)$/]",
+        "message": "<Toast> type must be one of 'success' | 'error' | 'info'."
+      }
+    ]
+  },
+  "overrides": [
+    {
+      "files": [
+        "**/index.js"
+      ],
+      "rules": {
+        "no-restricted-imports": "off"
+      }
+    }
+  ],
+  "x-omelette": {
+    "components": {
+      "Badge": {
+        "replaces": []
+      },
+      "BoardingPass": {
+        "replaces": []
+      },
+      "Button": {
+        "replaces": []
+      },
+      "Card": {
+        "replaces": []
+      },
+      "Chip": {
+        "replaces": []
+      },
+      "Fare": {
+        "replaces": []
+      },
+      "Input": {
+        "replaces": []
+      },
+      "PartnerItem": {
+        "replaces": []
+      },
+      "TabItem": {
+        "replaces": []
+      },
+      "Toast": {
+        "replaces": []
+      }
+    },
+    "tokens": [
+      "--bg-card",
+      "--bg-card-hover",
+      "--bg-dark",
+      "--bg-glass",
+      "--bg-glass-light",
+      "--bg-primary",
+      "--bg-secondary",
+      "--border-light",
+      "--border-subtle",
+      "--card-border",
+      "--card-border-hover",
+      "--card-glass",
+      "--card-glass-hover",
+      "--ease-aerodynamic",
+      "--fare-businessfly",
+      "--fare-businessprime",
+      "--fare-ecofly",
+      "--fare-extrafly",
+      "--fare-flexfly",
+      "--fare-primefly",
+      "--font-body",
+      "--font-display",
+      "--font-heading",
+      "--font-mono",
+      "--font-ui",
+      "--fs-body",
+      "--fs-chip",
+      "--fs-display",
+      "--fs-h",
+      "--fs-hero",
+      "--fs-iata",
+      "--fs-label",
+      "--fs-sm",
+      "--fs-title",
+      "--fs-xs",
+      "--fw-black",
+      "--fw-bold",
+      "--fw-extrabold",
+      "--fw-light",
+      "--fw-medium",
+      "--fw-regular",
+      "--fw-semibold",
+      "--lh-body",
+      "--lh-snug",
+      "--lh-tight",
+      "--ls-eyebrow",
+      "--ls-heading",
+      "--ls-label",
+      "--ls-normal",
+      "--ls-tight",
+      "--panel-surface",
+      "--panel-surface-2",
+      "--radius-full",
+      "--radius-lg",
+      "--radius-md",
+      "--radius-sm",
+      "--radius-xl",
+      "--route-glow",
+      "--shadow-glow",
+      "--shadow-gold",
+      "--shadow-lg",
+      "--shadow-light",
+      "--shadow-md",
+      "--shadow-panel",
+      "--shadow-sm",
+      "--space-2xl",
+      "--space-lg",
+      "--space-md",
+      "--space-sm",
+      "--space-xl",
+      "--space-xs",
+      "--status-error",
+      "--status-info",
+      "--status-success",
+      "--status-success-soft",
+      "--status-warning",
+      "--surface-light",
+      "--surface-light-2",
+      "--surface-light-3",
+      "--text-accent",
+      "--text-main",
+      "--text-muted",
+      "--text-on-light",
+      "--text-on-light-faint",
+      "--text-on-light-muted",
+      "--text-primary",
+      "--text-secondary",
+      "--thy-black",
+      "--thy-blue",
+      "--thy-gold",
+      "--thy-gold-light",
+      "--thy-navy",
+      "--thy-navy-light",
+      "--thy-red",
+      "--thy-red-bright",
+      "--thy-red-dark",
+      "--thy-red-light",
+      "--thy-white",
+      "--transition-aerodynamic",
+      "--transition-base",
+      "--transition-fast",
+      "--transition-slow",
+      "--z-header",
+      "--z-map",
+      "--z-modal",
+      "--z-panel",
+      "--z-toast"
+    ],
+    "tokenKinds": {
+      "--thy-red": "color",
+      "--thy-red-dark": "color",
+      "--thy-red-light": "color",
+      "--thy-red-bright": "color",
+      "--thy-blue": "color",
+      "--thy-navy": "color",
+      "--thy-navy-light": "color",
+      "--thy-gold": "color",
+      "--thy-gold-light": "color",
+      "--thy-white": "color",
+      "--thy-black": "color",
+      "--bg-dark": "color",
+      "--bg-primary": "color",
+      "--bg-secondary": "color",
+      "--bg-card": "color",
+      "--bg-card-hover": "color",
+      "--bg-glass": "color",
+      "--bg-glass-light": "color",
+      "--panel-surface": "color",
+      "--panel-surface-2": "color",
+      "--card-glass": "color",
+      "--card-glass-hover": "color",
+      "--card-border": "color",
+      "--card-border-hover": "color",
+      "--surface-light": "color",
+      "--surface-light-2": "color",
+      "--surface-light-3": "color",
+      "--border-light": "color",
+      "--text-on-light": "font",
+      "--text-on-light-muted": "font",
+      "--text-on-light-faint": "font",
+      "--text-main": "font",
+      "--text-primary": "font",
+      "--text-secondary": "font",
+      "--text-muted": "font",
+      "--text-accent": "font",
+      "--border-subtle": "color",
+      "--route-glow": "color",
+      "--status-success": "color",
+      "--status-success-soft": "color",
+      "--status-warning": "color",
+      "--status-error": "color",
+      "--status-info": "color",
+      "--fare-ecofly": "color",
+      "--fare-extrafly": "color",
+      "--fare-flexfly": "color",
+      "--fare-primefly": "color",
+      "--fare-businessfly": "color",
+      "--fare-businessprime": "color",
+      "--font-display": "font",
+      "--font-ui": "font",
+      "--font-heading": "font",
+      "--font-body": "font",
+      "--font-mono": "font",
+      "--fw-light": "font",
+      "--fw-regular": "font",
+      "--fw-medium": "font",
+      "--fw-semibold": "font",
+      "--fw-bold": "font",
+      "--fw-extrabold": "font",
+      "--fw-black": "font",
+      "--fs-hero": "spacing",
+      "--fs-display": "spacing",
+      "--fs-title": "spacing",
+      "--fs-h": "spacing",
+      "--fs-iata": "spacing",
+      "--fs-body": "spacing",
+      "--fs-sm": "spacing",
+      "--fs-xs": "spacing",
+      "--fs-label": "spacing",
+      "--fs-chip": "spacing",
+      "--ls-tight": "font",
+      "--ls-heading": "font",
+      "--ls-normal": "font",
+      "--ls-label": "font",
+      "--ls-eyebrow": "font",
+      "--lh-tight": "font",
+      "--lh-snug": "font",
+      "--lh-body": "font",
+      "--space-xs": "spacing",
+      "--space-sm": "spacing",
+      "--space-md": "spacing",
+      "--space-lg": "spacing",
+      "--space-xl": "spacing",
+      "--space-2xl": "spacing",
+      "--radius-sm": "radius",
+      "--radius-md": "radius",
+      "--radius-lg": "radius",
+      "--radius-xl": "radius",
+      "--radius-full": "radius",
+      "--shadow-sm": "shadow",
+      "--shadow-md": "shadow",
+      "--shadow-lg": "shadow",
+      "--shadow-panel": "shadow",
+      "--shadow-glow": "shadow",
+      "--shadow-gold": "shadow",
+      "--shadow-light": "shadow",
+      "--transition-fast": "other",
+      "--transition-base": "other",
+      "--transition-slow": "other",
+      "--transition-aerodynamic": "other",
+      "--ease-aerodynamic": "other",
+      "--z-map": "other",
+      "--z-panel": "other",
+      "--z-header": "other",
+      "--z-modal": "other",
+      "--z-toast": "other"
+    },
+    "fontFamilies": [
+      "Inter",
+      "JetBrains Mono",
+      "Montserrat",
+      "Outfit"
+    ]
+  }
+}
