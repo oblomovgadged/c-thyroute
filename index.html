@@ -655,7 +655,7 @@
       + '<div style="display:flex;gap:6px;"><button onclick="window.open(\'c-thyroute/assets/THY_Route_Mobil%20sunum.pdf\',\'_blank\')" class="lp-item" style="flex:1;cursor:pointer;"><span class="lp-icon">📄</span> Thy Route Mobil Sunum</button><a href="c-thyroute/assets/THY_Route_Mobil%20sunum.pdf" download class="lp-dl">⬇</a></div>';
     document.body.appendChild(left);
 
-    // Scroll ile sabitle (position:fixed yerine)
+    // requestAnimationFrame loop — her frame'de viewport'a sabitle
     function pin() {
       var st = window.pageYOffset || document.documentElement.scrollTop;
       left.style.top = (st + 20) + 'px';
@@ -663,10 +663,9 @@
       right.style.top = (st + 20) + 'px';
       right.style.right = '20px';
       right.style.left = 'auto';
+      requestAnimationFrame(pin);
     }
-    window.addEventListener('scroll', pin, {passive:true});
-    window.addEventListener('resize', pin);
-    pin();
+    requestAnimationFrame(pin);
 
     // Lightbox / modal açıkken panelleri gizle
     var origOpen = window.openLightbox;
