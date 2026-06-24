@@ -504,9 +504,9 @@
       </p>
     </header>
 
-    <section class="grid">
-      <!-- Web Sitesi -->
-      <a class="card" href="c-thyroute/Web Sitesi.html" style="--accent: #0053A5;">
+    <!-- SATIR 1: Demolar (3 kart, biraz daha büyük) -->
+    <section style="display:grid; grid-template-columns:repeat(3,1fr); gap:20px;">
+      <a class="card" href="c-thyroute/Web Sitesi.html" style="--accent: #0053A5; font-size:1.08em;">
         <div class="num">01 — KULLANICI · WEB</div>
         <div class="glyph">🌐</div>
         <h2>Kullanıcı Web Sitesi</h2>
@@ -521,8 +521,7 @@
         </div>
       </a>
 
-      <!-- Mobil Uygulama -->
-      <a class="card" href="c-thyroute/Mobil Uygulama.html" style="--accent: #B7312C;">
+      <a class="card" href="c-thyroute/Mobil Uygulama.html" style="--accent: #B7312C; font-size:1.08em;">
         <div class="num">02 — KULLANICI · MOBİL</div>
         <div class="glyph">📱</div>
         <h2>Kullanıcı Mobil Uygulama</h2>
@@ -537,8 +536,7 @@
         </div>
       </a>
 
-      <!-- Yönetici Ekranı -->
-      <a class="card" href="c-thyroute/Yönetici Ekranı.html" style="--accent: #C5A059;">
+      <a class="card" href="c-thyroute/Yönetici Ekranı.html" style="--accent: #C5A059; font-size:1.08em;">
         <div class="num">03 — YÖNETİCİ · EXECUTIVE</div>
         <div class="glyph">📊</div>
         <h2>Yönetici Ekranı</h2>
@@ -552,8 +550,10 @@
           <span class="arrow">→</span>
         </div>
       </a>
+    </section>
 
-      <!-- Strateji Raporu -->
+    <!-- SATIR 2: Dökümanlar (4 kart) -->
+    <section style="display:grid; grid-template-columns:repeat(4,1fr); gap:20px;">
       <div class="card doc-card" onclick="openLightbox('c-thyroute/assets/Thy Route Strateji Raporu..jpeg','THY Route Strateji Raporu')" style="--accent: #1A3A5C; cursor:pointer;">
         <div class="num">04 — DÖKÜMAN · STRATEJİ</div>
         <div class="glyph">📋</div>
@@ -569,7 +569,6 @@
         </div>
       </div>
 
-      <!-- Deneysel Parametreler -->
       <div class="card doc-card" onclick="openLightbox('c-thyroute/assets/Deneysel Parametreler.jpeg','THY Route Deneysel Parametreler Mimarisi')" style="--accent: #1A3A5C; cursor:pointer;">
         <div class="num">05 — DÖKÜMAN · METRİK</div>
         <div class="glyph">📐</div>
@@ -585,7 +584,6 @@
         </div>
       </div>
 
-      <!-- BPMN Süreci -->
       <div class="card doc-card" onclick="openLightbox('c-thyroute/assets/Bpmn.jpeg','THY Route BPMN Süreci')" style="--accent: #1A3A5C; cursor:pointer;">
         <div class="num">06 — DÖKÜMAN · BPMN</div>
         <div class="glyph">🔄</div>
@@ -601,7 +599,6 @@
         </div>
       </div>
 
-      <!-- Kavramsal Tasarım -->
       <div class="card doc-card" onclick="openLightbox('c-thyroute/assets/Kavramsal Tasarım.jpeg','THY Route Kavramsal Tasarım')" style="--accent: #1A3A5C; cursor:pointer;">
         <div class="num">07 — DÖKÜMAN · MİMARİ</div>
         <div class="glyph">🏗</div>
@@ -616,7 +613,10 @@
           <span class="arrow">↗</span>
         </div>
       </div>
-      <!-- Intelligence Architecture PDF -->
+    </section>
+
+    <!-- SATIR 3: PDF & Video (4 kart) -->
+    <section style="display:grid; grid-template-columns:repeat(4,1fr); gap:20px;">
       <div class="card doc-card" onclick="window.open('c-thyroute/assets/THY_Intelligence_Architecture.pdf','_blank')" style="--accent: #1A3A5C; cursor:pointer;">
         <div class="num">08 — DÖKÜMAN · PDF</div>
         <div class="glyph">📄</div>
@@ -631,7 +631,7 @@
           <span class="arrow">↗</span>
         </div>
       </div>
-      <!-- YouTube 1 -->
+
       <div class="card doc-card" onclick="window.open('https://youtu.be/eLCL5oCml_Q','_blank')" style="--accent: #B7312C; cursor:pointer;">
         <div class="num">09 — VİDEO · YOUTUBE</div>
         <div class="glyph">▶️</div>
@@ -647,7 +647,6 @@
         </div>
       </div>
 
-      <!-- YouTube 2 -->
       <div class="card doc-card" onclick="window.open('https://youtu.be/qh3ppPFBKAE','_blank')" style="--accent: #B7312C; cursor:pointer;">
         <div class="num">10 — VİDEO · YOUTUBE</div>
         <div class="glyph">▶️</div>
@@ -663,7 +662,6 @@
         </div>
       </div>
 
-      <!-- İllüstratif Simülasyon PDF -->
       <div class="card doc-card" style="--accent: #2D6A4F; cursor:pointer; position:relative;">
         <div class="num">11 — DÖKÜMAN · PDF</div>
         <div class="glyph">📊</div>
