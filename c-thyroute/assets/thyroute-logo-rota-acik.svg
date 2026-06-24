@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 90"><defs><style>@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;800;900&amp;family=Outfit:wght@300&amp;display=swap');</style></defs>
+  <circle cx="45" cy="45" r="40" fill="#B7312C"/>
+  <path d="M 20 68 Q 45 36 70 22" stroke="white" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+  <circle cx="20" cy="68" r="4" fill="white"/>
+  <circle cx="70" cy="22" r="5" fill="#C5A059"/>
+  <text x="105" y="32" font-family="Montserrat,sans-serif" font-weight="300" font-size="20" fill="#6B7280" letter-spacing="5">THY</text>
+  <text x="104" y="62" font-family="Montserrat,sans-serif" font-weight="900" font-size="28" fill="#B7312C" letter-spacing="1">ROUTE</text>
+  <text x="105" y="79" font-family="Outfit,sans-serif" font-weight="300" font-size="9" fill="#9CA3AF" letter-spacing="1.5">Keşfet. Planla. Yola Çık.</text>
+</svg>
