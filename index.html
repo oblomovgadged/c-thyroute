@@ -278,41 +278,7 @@
 </head>
 <body>
 
-  <!-- Sağ üst köşe iletişim butonu -->
-  <div style="position: fixed; top: 20px; right: 20px; z-index: 9999;">
-    <button onclick="var p=document.getElementById('contact-popup');p.style.display=p.style.display==='block'?'none':'block'" style="
-      display: flex; align-items: center; gap: 7px;
-      padding: 7px 14px; border-radius: 8px; border: 1px solid rgba(197,160,89,0.35);
-      background: rgba(10,22,40,0.82); backdrop-filter: blur(10px);
-      color: #F1E5CC; font-family: 'Outfit', sans-serif; font-size: 12px; font-weight: 600;
-      cursor: pointer; transition: background .18s, border-color .18s;
-    " onmouseover="this.style.background='rgba(197,160,89,0.18)';this.style.borderColor='rgba(197,160,89,0.7)'"
-       onmouseout="this.style.background='rgba(10,22,40,0.82)';this.style.borderColor='rgba(197,160,89,0.35)'">
-      <span style="color:#C5A059;">✉</span> İletişim
-    </button>
-    <div id="contact-popup" style="
-      display: none; position: absolute; top: calc(100% + 8px); right: 0;
-      background: rgba(10,22,40,0.96); backdrop-filter: blur(16px);
-      border: 1px solid rgba(197,160,89,0.4); border-radius: 10px;
-      padding: 14px 18px; min-width: 210px;
-      box-shadow: 0 12px 32px rgba(0,0,0,0.5);
-    ">
-      <div style="font-family:'Outfit',sans-serif; font-size:11px; font-weight:700; letter-spacing:1.4px; color:#C5A059; margin-bottom:10px;">İLETİŞİM</div>
-      <a href="tel:05343659838" style="
-        display:flex; align-items:center; gap:9px; text-decoration:none;
-        color:#F1E5CC; font-size:13px; font-weight:600; padding:6px 0;
-        border-bottom: 1px solid rgba(197,160,89,0.15);
-      ">
-        <span style="color:#C5A059; font-size:14px;">📞</span> 0534 365 98 38
-      </a>
-      <a href="mailto:bkiyikci@gmail.com" style="
-        display:flex; align-items:center; gap:9px; text-decoration:none;
-        color:#F1E5CC; font-size:13px; font-weight:600; padding:6px 0;
-      ">
-        <span style="color:#C5A059; font-size:14px;">✉</span> bkiyikci@gmail.com
-      </a>
-    </div>
-  </div>
+  <!-- İletişim butonu JS ile oluşturuluyor (floating-right) -->
 
 
   <!-- İnfografik Modal -->
@@ -654,27 +620,100 @@
     </footer>
   </div>
   <script>
-  // Sol panel — JS ile scroll'a karşı sabitleniyor
   (function(){
-    var html = '<a href="https://youtu.be/ZsLThYHK8AU" target="_blank" class="lp-item"><span class="lp-icon">▶</span> Bora Kıyıkcı Tanıtım</a>'
+    // Style
+    var s = document.createElement('style');
+    s.textContent = [
+      '#floating-left,#floating-right{position:absolute;z-index:99999;pointer-events:auto;}',
+      '#floating-left{display:flex;flex-direction:column;gap:6px;}',
+      '.lp-item{display:flex;align-items:center;gap:8px;padding:7px 13px;border-radius:8px;background:#0e1f36;border:1px solid rgba(197,160,89,0.35);color:#F1E5CC;text-decoration:none;font-family:"Outfit",sans-serif;font-size:12px;font-weight:600;}',
+      '.lp-item:hover{background:#1a3254;border-color:rgba(197,160,89,0.7);}',
+      '.lp-icon{color:#C5A059;font-size:13px;}',
+      '.lp-dl{display:flex;align-items:center;justify-content:center;padding:7px 10px;border-radius:8px;background:#0e1f36;border:1px solid rgba(197,160,89,0.35);color:#C5A059;text-decoration:none;font-size:13px;}',
+      '.lp-dl:hover{background:#1a3254;}'
+    ].join('');
+    document.head.appendChild(s);
+
+    // Sağ panel (İletişim)
+    var right = document.createElement('div');
+    right.id = 'floating-right';
+    right.innerHTML = '<button onclick="var p=document.getElementById(\'cp\');p.style.display=p.style.display===\'block\'?\'none\':\'block\'" class="lp-item" style="cursor:pointer;"><span class="lp-icon">✉</span> İletişim</button>'
+      + '<div id="cp" style="display:none;margin-top:6px;background:#0e1f36;border:1px solid rgba(197,160,89,0.4);border-radius:10px;padding:14px 18px;min-width:210px;box-shadow:0 12px 32px rgba(0,0,0,0.5);">'
+      + '<div style="font-family:Outfit,sans-serif;font-size:11px;font-weight:700;letter-spacing:1.4px;color:#C5A059;margin-bottom:10px;">İLETİŞİM</div>'
+      + '<a href="tel:05343659838" style="display:flex;align-items:center;gap:9px;text-decoration:none;color:#F1E5CC;font-size:13px;font-weight:600;padding:6px 0;border-bottom:1px solid rgba(197,160,89,0.15);"><span style="color:#C5A059;font-size:14px;">📞</span> 0534 365 98 38</a>'
+      + '<a href="mailto:bkiyikci@gmail.com" style="display:flex;align-items:center;gap:9px;text-decoration:none;color:#F1E5CC;font-size:13px;font-weight:600;padding:6px 0;"><span style="color:#C5A059;font-size:14px;">✉</span> bkiyikci@gmail.com</a>'
+      + '</div>';
+    document.body.appendChild(right);
+
+    // Sol panel
+    var left = document.createElement('div');
+    left.id = 'floating-left';
+    left.innerHTML = '<a href="https://youtu.be/ZsLThYHK8AU" target="_blank" class="lp-item"><span class="lp-icon">▶</span> Bora Kıyıkcı Tanıtım</a>'
       + '<a href="https://youtu.be/PPR7k1wTdmA" target="_blank" class="lp-item"><span class="lp-icon">▶</span> Thy Route Giriş</a>'
       + '<button onclick="document.getElementById(\'infographic-modal\').style.display=\'flex\'" class="lp-item" style="text-align:left;line-height:1.35;cursor:pointer;"><span class="lp-icon">📊</span><span>THY Route: Kurumsal Kazanımlar<br><span style="font-size:10px;color:#C5A059;font-weight:700;">(Lütfen Tıklayın)</span></span></button>'
       + '<div style="display:flex;gap:6px;"><button onclick="window.open(\'c-thyroute/assets/THY_Route_web%20sunum.pdf\',\'_blank\')" class="lp-item" style="flex:1;cursor:pointer;"><span class="lp-icon">📄</span> Thy Route Web Sunum</button><a href="c-thyroute/assets/THY_Route_web%20sunum.pdf" download class="lp-dl">⬇</a></div>'
       + '<div style="display:flex;gap:6px;"><button onclick="window.open(\'c-thyroute/assets/THY_Route_Mobil%20sunum.pdf\',\'_blank\')" class="lp-item" style="flex:1;cursor:pointer;"><span class="lp-icon">📄</span> Thy Route Mobil Sunum</button><a href="c-thyroute/assets/THY_Route_Mobil%20sunum.pdf" download class="lp-dl">⬇</a></div>';
+    document.body.appendChild(left);
 
-    var d = document.createElement('div');
-    d.id = 'left-panel';
-    d.innerHTML = html;
-    document.body.appendChild(d);
+    // Scroll ile sabitle (position:fixed yerine)
+    function pin() {
+      var st = window.pageYOffset || document.documentElement.scrollTop;
+      left.style.top = (st + 20) + 'px';
+      left.style.left = '20px';
+      right.style.top = (st + 20) + 'px';
+      right.style.right = '20px';
+      right.style.left = 'auto';
+    }
+    window.addEventListener('scroll', pin, {passive:true});
+    window.addEventListener('resize', pin);
+    pin();
 
-    var s = document.createElement('style');
-    s.textContent = '#left-panel{position:fixed!important;top:20px!important;left:20px!important;z-index:99999!important;display:flex;flex-direction:column;gap:6px;transform:none!important;}'
-      + '.lp-item{display:flex;align-items:center;gap:8px;padding:7px 13px;border-radius:8px;background:#0e1f36;border:1px solid rgba(197,160,89,0.35);color:#F1E5CC;text-decoration:none;font-family:"Outfit",sans-serif;font-size:12px;font-weight:600;}'
-      + '.lp-item:hover{background:#1a3254;border-color:rgba(197,160,89,0.7);}'
-      + '.lp-icon{color:#C5A059;font-size:13px;}'
-      + '.lp-dl{display:flex;align-items:center;justify-content:center;padding:7px 10px;border-radius:8px;background:#0e1f36;border:1px solid rgba(197,160,89,0.35);color:#C5A059;text-decoration:none;font-size:13px;}'
-      + '.lp-dl:hover{background:#1a3254;}';
-    document.head.appendChild(s);
+    // Lightbox / modal açıkken panelleri gizle
+    var origOpen = window.openLightbox;
+    window.openLightbox = function(src, title) {
+      left.style.display = 'none';
+      document.getElementById('floating-right').style.display = 'none';
+      origOpen(src, title);
+    };
+    var origClose = window.closeLightbox;
+    window.closeLightbox = function(e) {
+      origClose(e);
+      if (document.getElementById('lightbox').style.display === 'none' || document.getElementById('lightbox').style.display === '') {
+        left.style.display = 'flex';
+        document.getElementById('floating-right').style.display = '';
+      }
+    };
+
+    // İnfografik modal gizle/göster
+    var infoModal = document.getElementById('infographic-modal');
+    var origInfoClick = infoModal.getAttribute('onclick');
+    infoModal.setAttribute('onclick', '');
+    infoModal.addEventListener('click', function(e) {
+      if (e.target === infoModal) {
+        infoModal.style.display = 'none';
+        left.style.display = 'flex';
+        document.getElementById('floating-right').style.display = '';
+      }
+    });
+    // İnfografik açılınca panelleri gizle
+    var infoBtn = left.querySelector('button');
+    var origInfoBtnClick = infoBtn.onclick;
+    infoBtn.onclick = function() {
+      infoModal.style.display = 'flex';
+      left.style.display = 'none';
+      document.getElementById('floating-right').style.display = 'none';
+    };
+
+    // ESC ile lightbox/modal kapanınca paneller geri gelsin
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') {
+        document.getElementById('lightbox').style.display = 'none';
+        document.body.style.overflow = '';
+        infoModal.style.display = 'none';
+        left.style.display = 'flex';
+        document.getElementById('floating-right').style.display = '';
+      }
+    });
   })();
   </script>
 
