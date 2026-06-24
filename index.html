@@ -653,46 +653,30 @@
       </span>
     </footer>
   </div>
-  <!-- Sol panel — body sonunda, backdrop-filter YOK -->
-  <div id="left-panel" style="position:fixed;top:20px;left:20px;z-index:9999;display:flex;flex-direction:column;gap:6px;">
-    <a href="https://youtu.be/ZsLThYHK8AU" target="_blank"
-       style="display:flex;align-items:center;gap:8px;padding:7px 13px;border-radius:8px;background:#0e1f36;border:1px solid rgba(197,160,89,0.35);color:#F1E5CC;text-decoration:none;font-family:'Outfit',sans-serif;font-size:12px;font-weight:600;"
-       onmouseover="this.style.background='#1a3254';this.style.borderColor='rgba(197,160,89,0.7)'"
-       onmouseout="this.style.background='#0e1f36';this.style.borderColor='rgba(197,160,89,0.35)'">
-      <span style="color:#C5A059;">▶</span> Bora Kıyıkcı Tanıtım
-    </a>
-    <a href="https://youtu.be/PPR7k1wTdmA" target="_blank"
-       style="display:flex;align-items:center;gap:8px;padding:7px 13px;border-radius:8px;background:#0e1f36;border:1px solid rgba(197,160,89,0.35);color:#F1E5CC;text-decoration:none;font-family:'Outfit',sans-serif;font-size:12px;font-weight:600;"
-       onmouseover="this.style.background='#1a3254';this.style.borderColor='rgba(197,160,89,0.7)'"
-       onmouseout="this.style.background='#0e1f36';this.style.borderColor='rgba(197,160,89,0.35)'">
-      <span style="color:#C5A059;">▶</span> Thy Route Giriş
-    </a>
-    <button onclick="document.getElementById('infographic-modal').style.display='flex'"
-       style="display:flex;align-items:center;gap:8px;padding:7px 13px;border-radius:8px;background:#0e1f36;border:1px solid rgba(197,160,89,0.55);color:#F1E5CC;font-family:'Outfit',sans-serif;font-size:12px;font-weight:600;cursor:pointer;text-align:left;line-height:1.35;"
-       onmouseover="this.style.background='#1a3254';this.style.borderColor='rgba(197,160,89,0.8)'"
-       onmouseout="this.style.background='#0e1f36';this.style.borderColor='rgba(197,160,89,0.55)'">
-      <span style="color:#C5A059;">📊</span>
-      <span>THY Route: Kurumsal Kazanımlar<br><span style="font-size:10px;color:#C5A059;font-weight:700;">(Lütfen Tıklayın)</span></span>
-    </button>
-    <div style="display:flex;gap:6px;">
-      <button onclick="window.open('c-thyroute/assets/THY_Route_web%20sunum.pdf','_blank')"
-         style="flex:1;display:flex;align-items:center;gap:8px;padding:7px 13px;border-radius:8px;background:#0e1f36;border:1px solid rgba(197,160,89,0.35);color:#F1E5CC;font-family:'Outfit',sans-serif;font-size:12px;font-weight:600;cursor:pointer;"
-         onmouseover="this.style.background='#1a3254'" onmouseout="this.style.background='#0e1f36'">
-        <span style="color:#C5A059;">📄</span> Thy Route Web Sunum
-      </button>
-      <a href="c-thyroute/assets/THY_Route_web%20sunum.pdf" download="THY_Route_web sunum.pdf"
-         style="display:flex;align-items:center;justify-content:center;padding:7px 10px;border-radius:8px;background:#0e1f36;border:1px solid rgba(197,160,89,0.35);color:#C5A059;text-decoration:none;font-size:13px;">⬇</a>
-    </div>
-    <div style="display:flex;gap:6px;">
-      <button onclick="window.open('c-thyroute/assets/THY_Route_Mobil%20sunum.pdf','_blank')"
-         style="flex:1;display:flex;align-items:center;gap:8px;padding:7px 13px;border-radius:8px;background:#0e1f36;border:1px solid rgba(197,160,89,0.35);color:#F1E5CC;font-family:'Outfit',sans-serif;font-size:12px;font-weight:600;cursor:pointer;"
-         onmouseover="this.style.background='#1a3254'" onmouseout="this.style.background='#0e1f36'">
-        <span style="color:#C5A059;">📄</span> Thy Route Mobil Sunum
-      </button>
-      <a href="c-thyroute/assets/THY_Route_Mobil%20sunum.pdf" download="THY_Route_Mobil sunum.pdf"
-         style="display:flex;align-items:center;justify-content:center;padding:7px 10px;border-radius:8px;background:#0e1f36;border:1px solid rgba(197,160,89,0.35);color:#C5A059;text-decoration:none;font-size:13px;">⬇</a>
-    </div>
-  </div>
+  <script>
+  // Sol panel — JS ile scroll'a karşı sabitleniyor
+  (function(){
+    var html = '<a href="https://youtu.be/ZsLThYHK8AU" target="_blank" class="lp-item"><span class="lp-icon">▶</span> Bora Kıyıkcı Tanıtım</a>'
+      + '<a href="https://youtu.be/PPR7k1wTdmA" target="_blank" class="lp-item"><span class="lp-icon">▶</span> Thy Route Giriş</a>'
+      + '<button onclick="document.getElementById(\'infographic-modal\').style.display=\'flex\'" class="lp-item" style="text-align:left;line-height:1.35;cursor:pointer;"><span class="lp-icon">📊</span><span>THY Route: Kurumsal Kazanımlar<br><span style="font-size:10px;color:#C5A059;font-weight:700;">(Lütfen Tıklayın)</span></span></button>'
+      + '<div style="display:flex;gap:6px;"><button onclick="window.open(\'c-thyroute/assets/THY_Route_web%20sunum.pdf\',\'_blank\')" class="lp-item" style="flex:1;cursor:pointer;"><span class="lp-icon">📄</span> Thy Route Web Sunum</button><a href="c-thyroute/assets/THY_Route_web%20sunum.pdf" download class="lp-dl">⬇</a></div>'
+      + '<div style="display:flex;gap:6px;"><button onclick="window.open(\'c-thyroute/assets/THY_Route_Mobil%20sunum.pdf\',\'_blank\')" class="lp-item" style="flex:1;cursor:pointer;"><span class="lp-icon">📄</span> Thy Route Mobil Sunum</button><a href="c-thyroute/assets/THY_Route_Mobil%20sunum.pdf" download class="lp-dl">⬇</a></div>';
+
+    var d = document.createElement('div');
+    d.id = 'left-panel';
+    d.innerHTML = html;
+    document.body.appendChild(d);
+
+    var s = document.createElement('style');
+    s.textContent = '#left-panel{position:fixed!important;top:20px!important;left:20px!important;z-index:99999!important;display:flex;flex-direction:column;gap:6px;transform:none!important;}'
+      + '.lp-item{display:flex;align-items:center;gap:8px;padding:7px 13px;border-radius:8px;background:#0e1f36;border:1px solid rgba(197,160,89,0.35);color:#F1E5CC;text-decoration:none;font-family:"Outfit",sans-serif;font-size:12px;font-weight:600;}'
+      + '.lp-item:hover{background:#1a3254;border-color:rgba(197,160,89,0.7);}'
+      + '.lp-icon{color:#C5A059;font-size:13px;}'
+      + '.lp-dl{display:flex;align-items:center;justify-content:center;padding:7px 10px;border-radius:8px;background:#0e1f36;border:1px solid rgba(197,160,89,0.35);color:#C5A059;text-decoration:none;font-size:13px;}'
+      + '.lp-dl:hover{background:#1a3254;}';
+    document.head.appendChild(s);
+  })();
+  </script>
 
 </body>
 </html>
