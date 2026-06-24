@@ -31,7 +31,27 @@
 
 **Tek dosya, sıfır kurulum:** Tüm HTML'ler tek başlarına çalışır (CDN + design system token'ları). İndir, çift tıkla, demo açılır.
 
-> Vercel canlı demo URL'i: deploy sonrası bu kısma eklenecek.
+> 🔗 **Canlı Demo:** https://oblomovgadged.github.io/c-thyroute/
+
+---
+
+## 🎬 Videolar
+
+| # | Video | Link |
+|---|---|---|
+| 1 | **Bora Kıyıkcı Tanıtım** | [YouTube ↗](https://youtu.be/ZsLThYHK8AU) |
+| 2 | **Thy Route Giriş** | [YouTube ↗](https://youtu.be/PPR7k1wTdmA) |
+| 3 | **Thy Route Web Prototip** | [YouTube ↗](https://youtu.be/eLCL5oCml_Q) |
+| 4 | **Thy Route Mobil Prototip** | [YouTube ↗](https://youtu.be/qh3ppPFBKAE) |
+
+---
+
+## 📄 PDF Dökümanlar
+
+| # | Döküman | Dosya |
+|---|---|---|
+| 08 | **Intelligence Architecture** | [`THY_Intelligence_Architecture.pdf`](./assets/THY_Intelligence_Architecture.pdf) |
+| 11 | **İllüstratif Simülasyon** | [`İllüstratif Simülasyon.pdf`](./assets/%C4%B0ll%C3%BCstratif%20Sim%C3%BClasyon.pdf) |
 
 ---
 
