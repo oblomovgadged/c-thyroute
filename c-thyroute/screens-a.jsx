@@ -153,7 +153,7 @@ function SplashScreen({ t, nav, k }) {
 
       {/* Primary CTA — square black */}
       <div style={{ position: 'relative', padding: '16px 24px 18px' }}>
-        <button onClick={() => nav('board')} style={{
+        <button onClick={() => nav('search')} style={{
           width: '100%', padding: '17px 22px',
           background: '#0A1628', color: '#F5F1EA', border: 'none',
           borderRadius: 0, cursor: 'pointer',

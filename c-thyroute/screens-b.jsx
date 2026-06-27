@@ -15,8 +15,8 @@ function MapScreen({ t, nav, k }) {
   const [booking, , h] = useBooking();
   const destCode = booking.toCode || 'FCO';
   const dest = (typeof getDestination === 'function') ? getDestination(destCode) : null;
-  const fromC = h.from || (typeof findCity === 'function' ? findCity('IST') : { code: 'IST', city: 'İstanbul' });
-  const toC = h.to || (typeof findCity === 'function' ? findCity(destCode) : { code: destCode, city: destCode });
+  const fromC = h.from || (typeof findCity === 'function' && findCity('IST')) || { code: 'IST', city: 'İstanbul' };
+  const toC = h.to || (typeof findCity === 'function' && findCity(destCode)) || { code: destCode, city: destCode };
 
   const [dayIx, setDayIx] = React.useState(0);              // 0 | 1 | 2 | 'discover'
   const [openPoi, setOpenPoi] = React.useState(null);       // POI id for bottom-sheet
@@ -44,6 +44,27 @@ function MapScreen({ t, nav, k }) {
   };
   const [shareOpen, setShareOpen] = React.useState(false);
   const [linkCopied, setLinkCopied] = React.useState(false);
+  const [cityPickerOpen, setCityPickerOpen] = React.useState(false);
+
+  // Popüler destinasyonlar — WEB_DESTS'teki tüm şehirler
+  const QUICK_DESTS = [
+    { code: 'FCO', city: 'Roma',      flag: '🇮🇹', region: u.lang==='tr'?'Avrupa':'Europe' },
+    { code: 'CDG', city: 'Paris',     flag: '🇫🇷', region: u.lang==='tr'?'Avrupa':'Europe' },
+    { code: 'LHR', city: 'Londra',    flag: '🇬🇧', region: u.lang==='tr'?'Avrupa':'Europe' },
+    { code: 'BER', city: 'Berlin',    flag: '🇩🇪', region: u.lang==='tr'?'Avrupa':'Europe' },
+    { code: 'AMS', city: 'Amsterdam', flag: '🇳🇱', region: u.lang==='tr'?'Avrupa':'Europe' },
+    { code: 'ATH', city: 'Atina',     flag: '🇬🇷', region: u.lang==='tr'?'Avrupa':'Europe' },
+    { code: 'DXB', city: 'Dubai',     flag: '🇦🇪', region: u.lang==='tr'?'Orta Doğu':'Middle East' },
+    { code: 'JFK', city: 'New York',  flag: '🇺🇸', region: u.lang==='tr'?'Amerika':'Americas' },
+    { code: 'BKK', city: 'Bangkok',   flag: '🇹🇭', region: u.lang==='tr'?'Asya':'Asia' },
+    { code: 'IST', city: 'İstanbul',  flag: '🇹🇷', region: u.lang==='tr'?'Türkiye':'Turkey' },
+    { code: 'GNY', city: 'Şanlıurfa', flag: '🇹🇷', region: u.lang==='tr'?'Türkiye':'Turkey' },
+    { code: 'NAV', city: 'Nevşehir',  flag: '🇹🇷', region: u.lang==='tr'?'Türkiye':'Turkey' },
+    { code: 'AYT', city: 'Antalya',   flag: '🇹🇷', region: u.lang==='tr'?'Türkiye':'Turkey' },
+    { code: 'ADB', city: 'İzmir',     flag: '🇹🇷', region: u.lang==='tr'?'Türkiye':'Turkey' },
+    { code: 'TZX', city: 'Trabzon',   flag: '🇹🇷', region: u.lang==='tr'?'Türkiye':'Turkey' },
+    { code: 'RZE', city: 'Rize',      flag: '🇹🇷', region: u.lang==='tr'?'Türkiye':'Turkey' },
+  ];
   const edits = (typeof useRouteEdits === 'function') ? useRouteEdits(destCode) : { state: {}, isDeleted: () => false, addCustom: () => {}, getNote: () => '', addNote: () => {}, deleteNote: () => {} };
   const collab = (typeof useRouteCollab === 'function') ? useRouteCollab(destCode, edits) : null;
   const me = collab?.me;
@@ -232,9 +253,18 @@ function MapScreen({ t, nav, k }) {
           }}>
             <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 800, fontSize: 12, letterSpacing: 0.8, color: '#0A1628' }}>{fromC.code}</span>
             <span style={{ fontSize: 12, color: '#C5A059' }}>→</span>
-            <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 800, fontSize: 12, letterSpacing: 0.8, color: '#B7312C' }}>{toC.code}</span>
+            <button onClick={() => setCityPickerOpen(true)} style={{
+              background: 'none', border: 'none', padding: 0, cursor: 'pointer',
+              display: 'inline-flex', alignItems: 'center', gap: 3,
+            }}>
+              <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 800, fontSize: 12, letterSpacing: 0.8, color: '#B7312C' }}>{toC.code}</span>
+              <span style={{ fontSize: 8, color: '#C5A059', lineHeight: 1 }}>▾</span>
+            </button>
             <div style={{ width: 1, height: 16, background: '#E2E8F0' }} />
-            <div style={{ minWidth: 0, flex: 1 }}>
+            <button onClick={() => setCityPickerOpen(true)} style={{
+              background: 'none', border: 'none', padding: 0, cursor: 'pointer',
+              minWidth: 0, flex: 1, textAlign: 'left',
+            }}>
               <div style={{
                 fontSize: 11, fontWeight: 800, color: '#0A1628',
                 whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
@@ -243,7 +273,7 @@ function MapScreen({ t, nav, k }) {
                 fontSize: 9.5, color: '#94A3B8', fontStyle: 'italic',
                 whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
               }}>{u.lang==='tr' ? dest.tagline?.tr : dest.tagline?.en}</div>
-            </div>
+            </button>
           </div>
           {/* Collaborator avatar stack — tapping the stack opens the share sheet */}
           {collab && (
@@ -270,7 +300,104 @@ function MapScreen({ t, nav, k }) {
           )}
         </div>
 
-        {/* bottom map gradient → smoother handoff to panel */}
+        {/* ── Şehir Seçici Bottom Sheet ── */}
+      {cityPickerOpen && (
+        <div style={{
+          position: 'absolute', inset: 0, zIndex: 900,
+          background: 'rgba(10,22,40,0.55)', backdropFilter: 'blur(3px)',
+          display: 'flex', flexDirection: 'column', justifyContent: 'flex-end',
+        }} onClick={() => setCityPickerOpen(false)}>
+          <div onClick={e => e.stopPropagation()} style={{
+            background: '#fff', borderRadius: '16px 16px 0 0',
+            padding: '0 0 32px',
+            maxHeight: '72%', display: 'flex', flexDirection: 'column',
+            boxShadow: '0 -8px 32px rgba(10,22,40,0.18)',
+          }}>
+            {/* Handle */}
+            <div style={{ display: 'flex', justifyContent: 'center', padding: '10px 0 4px' }}>
+              <div style={{ width: 36, height: 4, borderRadius: 2, background: '#E2E8F0' }} />
+            </div>
+            {/* Başlık */}
+            <div style={{
+              padding: '8px 18px 12px',
+              borderBottom: '1px solid #F1F5F9',
+              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+            }}>
+              <div>
+                <div style={{ fontFamily: 'var(--font-heading)', fontWeight: 700, fontSize: 16, color: '#0A1628' }}>
+                  {u.lang==='tr' ? 'Nereye gidiyorsun?' : 'Where are you going?'}
+                </div>
+                <div style={{ fontSize: 10.5, color: '#94A3B8', marginTop: 2 }}>
+                  {u.lang==='tr' ? 'Bir şehir seç — harita ve rehber güncellensin' : 'Pick a city — map & guide will update'}
+                </div>
+              </div>
+              <button onClick={() => setCityPickerOpen(false)} style={{
+                background: '#F1F5F9', border: 'none', borderRadius: 8,
+                width: 30, height: 30, cursor: 'pointer', fontSize: 14, color: '#64748B',
+              }}>✕</button>
+            </div>
+            {/* Şehir listesi */}
+            <div style={{ overflowY: 'auto', padding: '8px 0' }}>
+              {(() => {
+                const regions = [...new Set(QUICK_DESTS.map(d => d.region))];
+                return regions.map(region => (
+                  <div key={region}>
+                    <div style={{
+                      padding: '6px 18px 4px',
+                      fontSize: 9, fontWeight: 800, letterSpacing: 1.4,
+                      color: '#94A3B8', textTransform: 'uppercase',
+                    }}>{region}</div>
+                    {QUICK_DESTS.filter(d => d.region === region).map(d => {
+                      const isActive = d.code === destCode;
+                      return (
+                        <button key={d.code} onClick={() => {
+                          setBooking({ toCode: d.code });
+                          setCityPickerOpen(false);
+                          toast({ type: 'info', icon: d.flag, children:
+                            (u.lang==='tr' ? d.city + ' seçildi' : d.city + ' selected') });
+                        }} style={{
+                          width: '100%', padding: '11px 18px',
+                          background: isActive ? 'rgba(183,49,44,0.06)' : 'transparent',
+                          border: 'none', borderBottom: '1px solid #F8FAFC',
+                          cursor: 'pointer', textAlign: 'left',
+                          display: 'flex', alignItems: 'center', gap: 12,
+                        }}>
+                          <span style={{ fontSize: 20, lineHeight: 1 }}>{d.flag}</span>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{
+                              fontWeight: 700, fontSize: 13, color: isActive ? '#B7312C' : '#0A1628',
+                              display: 'flex', alignItems: 'center', gap: 6,
+                            }}>
+                              {d.city}
+                              {isActive && <span style={{
+                                fontSize: 8, fontFamily: 'var(--font-mono)', fontWeight: 800,
+                                background: '#B7312C', color: '#fff',
+                                padding: '1px 5px', borderRadius: 2, letterSpacing: 1,
+                              }}>✓ {u.lang==='tr'?'SEÇİLİ':'ACTIVE'}</span>}
+                            </div>
+                            <div style={{ fontSize: 10, color: '#94A3B8', fontFamily: 'var(--font-mono)', marginTop: 1 }}>{d.code}</div>
+                          </div>
+                          {!isActive && <span style={{ fontSize: 14, color: '#CBD5E1' }}>→</span>}
+                        </button>
+                      );
+                    })}
+                  </div>
+                ));
+              })()}
+            </div>
+            {/* Alt link */}
+            <div style={{ padding: '10px 18px 0', borderTop: '1px solid #F1F5F9' }}>
+              <button onClick={() => { setCityPickerOpen(false); nav('search'); }} style={{
+                width: '100%', padding: '11px', background: '#0A1628', color: '#F5F1EA',
+                border: 'none', borderRadius: 8, fontWeight: 700, fontSize: 12,
+                cursor: 'pointer', fontFamily: u.font,
+              }}>{u.lang==='tr' ? '+ Yeni rota oluştur' : '+ Create new route'} →</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* bottom map gradient → smoother handoff to panel */}
         <div aria-hidden style={{
           position: 'absolute', left: 0, right: 0, bottom: 0, height: 40, pointerEvents: 'none',
           background: 'linear-gradient(180deg, transparent, rgba(250,246,238,0.95))', zIndex: 400,
@@ -589,6 +716,42 @@ function MapScreen({ t, nav, k }) {
               display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6,
             }}><Icon name="plus" size={14} color={u.accent.fg} /> {u.lang==='tr' ? 'Yeni durak ekle' : 'Add a stop'}</button>
           )}
+
+          {/* Rotayı Kaydet — plan panelinin altı */}
+          <button onClick={() => {
+            try {
+              const id = 'TRIP-' + (fromC.code||'IST') + destCode + Date.now().toString(36).slice(-4).toUpperCase();
+              const rec = {
+                id,
+                name: (u.lang==='tr' ? toC.city || destCode : toC.city || destCode) + ' Rotası',
+                legs: [(fromC.code||'IST'), destCode],
+                dates: (typeof formatDateShort==='function' && booking.depDate)
+                  ? (() => { const d=formatDateShort(booking.depDate,u.lang); return d.day+' '+d.mo; })()
+                  : '—',
+                pax: u.lang==='tr'?'1 yetişkin':'1 adult',
+                miles: '+840', price: '6\u00a0480,00',
+                status: { label: u.lang==='tr'?'PLANLANIYOR':'PLANNED', tone: 'navy' },
+                cabin: booking.fareFamily || 'EcoFly',
+                eta: u.lang==='tr'?'Düzenlendi · haritada':'Edited · on map',
+                savedAt: new Date().toISOString(),
+              };
+              const list = JSON.parse(localStorage.getItem('thy-route-selections-v1')||'[]');
+              if (!list.some(r => r.id === id)) { list.unshift(rec); localStorage.setItem('thy-route-selections-v1', JSON.stringify(list)); }
+            } catch(_) {}
+            toast({ type: 'success', icon: '✓', children: u.lang==='tr'?'Rota kaydedildi → Rotalarım':'Route saved → My Routes' });
+            setTimeout(() => nav('routes'), 700);
+          }} style={{
+            marginTop: 10, padding: '13px 14px', width: '100%',
+            background: 'linear-gradient(135deg, #0A1628 0%, #1B3868 100%)',
+            border: '1px solid rgba(197,160,89,0.45)',
+            borderRadius: 10, color: '#E5C97A', fontWeight: 800, fontSize: 12,
+            fontFamily: u.font, cursor: 'pointer', letterSpacing: 0.4,
+            display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 7,
+            boxShadow: '0 6px 16px rgba(10,22,40,0.28)',
+          }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+            {u.lang==='tr' ? 'Rotasını Kaydet' : 'Save Route'} →
+          </button>
         </div>
 
         <div style={{ marginTop: 'auto' }}>
@@ -1448,17 +1611,59 @@ function MilesScreen({ t, nav, k }) {
 
         {/* category chips */}
         <div style={{ display: 'flex', gap: 6, marginBottom: 12, flexWrap: 'wrap' }}>
-          <ThyChip active={cat==='all'}    onClick={() => setCat('all')}>{u.lang === 'tr' ? 'Tümü' : 'All'}</ThyChip>
-          <ThyChip active={cat==='hotel'}  onClick={() => setCat('hotel')} icon={<Icon name="bed" size={12} />}>{u.lang === 'tr' ? 'Konaklama' : 'Hotels'}</ThyChip>
-          <ThyChip active={cat==='car'}    onClick={() => setCat('car')} icon={<Icon name="car" size={12} />}>{u.lang === 'tr' ? 'Araç' : 'Cars'}</ThyChip>
-          <ThyChip active={cat==='bank'}   onClick={() => setCat('bank')} icon={<Icon name="cardIcon" size={12} />}>{u.lang === 'tr' ? 'Banka' : 'Bank'}</ThyChip>
-          <ThyChip active={cat==='dining'} onClick={() => setCat('dining')} icon={<Icon name="coffee" size={12} />}>{u.lang === 'tr' ? 'Yeme' : 'Dining'}</ThyChip>
+          {[
+            { id: 'all',    label: u.lang==='tr'?'Tümü':'All',        icon: null },
+            { id: 'hotel',  label: u.lang==='tr'?'Konaklama':'Hotels', icon: 'bed' },
+            { id: 'car',    label: u.lang==='tr'?'Araç':'Cars',        icon: 'car' },
+            { id: 'vip',    label: u.lang==='tr'?'VIP Transfer':'VIP', icon: 'shield' },
+            { id: 'lounge', label: 'Lounge',                           icon: 'coffee' },
+            { id: 'wifi',   label: u.lang==='tr'?'Hizmetler':'Services', icon: 'wifi' },
+            { id: 'bank',   label: u.lang==='tr'?'Banka':'Bank',       icon: 'cardIcon' },
+            { id: 'dining', label: u.lang==='tr'?'Yeme':'Dining',      icon: 'coffee' },
+          ].map(c => (
+            <ThyChip key={c.id} active={cat===c.id} onClick={() => setCat(c.id)}
+              icon={c.icon ? <Icon name={c.icon} size={12} /> : null}>
+              {c.label}
+            </ThyChip>
+          ))}
         </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          <PartnerItem name="Hilton" offer={u.lang === 'tr' ? 'Konaklama başına 500 Mil' : '500 mi per stay'} icon={<Icon name="bed" size={16} />} actionLabel={u.lang === 'tr' ? 'Haritada Bul' : 'Find'} />
-          <PartnerItem name="Avis" offer={u.lang === 'tr' ? 'Kiralama başına min. 125 Mil' : 'min. 125 mi per rental'} icon={<Icon name="car" size={16} />} actionLabel={u.lang === 'tr' ? 'Haritada Bul' : 'Find'} />
-          <PartnerItem name="Garanti BBVA" offer={u.lang === 'tr' ? 'Her 5 TL\'ye 1 Mil' : '1 mi per 5 TL spend'} icon={<Icon name="cardIcon" size={16} />} actionLabel={u.lang === 'tr' ? 'Aktifleştir' : 'Activate'} />
-        </div>
+        {(() => {
+          const TR = u.lang === 'tr';
+          const ALL_PARTNERS = [
+            { name:'Marriott Bonvoy',      offer:TR?'Konaklama başına 600 Mil':'600 mi per stay',        icon:'bed',      cat:'hotel',  action:TR?'Haritada Bul':'Find' },
+            { name:'Hilton Honors',        offer:TR?'Konaklama başına 500 Mil':'500 mi per stay',        icon:'bed',      cat:'hotel',  action:TR?'Haritada Bul':'Find' },
+            { name:'ALL · Accor',          offer:TR?'%15 + 550 Mil/gece':'15% + 550 mi/night',           icon:'bed',      cat:'hotel',  action:TR?'Aktifleştir':'Activate' },
+            { name:'Rixos Hotels',         offer:TR?'Konaklama başına 700 Mil':'700 mi per stay',        icon:'bed',      cat:'hotel',  action:TR?'Haritada Bul':'Find' },
+            { name:'IHG One Rewards',      offer:TR?'Konaklama başına 650 Mil':'650 mi per stay',        icon:'bed',      cat:'hotel',  action:TR?'Aktifleştir':'Activate' },
+            { name:'Booking.com',          offer:TR?'%5 mil iadesi · 400 Mil':'5% miles back',           icon:'bed',      cat:'hotel',  action:TR?'Aktifleştir':'Activate' },
+            { name:'Rocketmiles',          offer:TR?'Rezervasyon başına 1.500 Mil':'1,500 mi/booking',   icon:'bed',      cat:'hotel',  action:TR?'Aktifleştir':'Activate' },
+            { name:'HalalBooking',         offer:TR?'Rezervasyon başına 700 Mil':'700 mi per booking',   icon:'bed',      cat:'hotel',  action:TR?'Aktifleştir':'Activate' },
+            { name:'Kaligo',               offer:TR?'Rezervasyon başına 1.800 Mil':'1,800 mi/booking',   icon:'bed',      cat:'hotel',  action:TR?'Aktifleştir':'Activate' },
+            { name:'Avis',                 offer:TR?'Min. 125 Mil/kiralama':'min. 125 mi per rental',    icon:'car',      cat:'car',    action:TR?'Haritada Bul':'Find' },
+            { name:'Budget',               offer:TR?'Min. 110 Mil/kiralama':'min. 110 mi per rental',    icon:'car',      cat:'car',    action:TR?'Aktifleştir':'Activate' },
+            { name:'Enterprise',           offer:TR?'Min. 130 Mil/kiralama':'min. 130 mi per rental',    icon:'car',      cat:'car',    action:TR?'Aktifleştir':'Activate' },
+            { name:'Sixt',                 offer:TR?'Min. 140 Mil/kiralama':'min. 140 mi per rental',    icon:'car',      cat:'car',    action:TR?'Haritada Bul':'Find' },
+            { name:'ProGo VIP Transfer',   offer:TR?'Tek yön 950 Mil':'950 mi per one-way',              icon:'shield',   cat:'vip',    action:TR?'Haritada Bul':'Find' },
+            { name:'Plaza Premium Lounge', offer:TR?'Lounge başına 400 Mil':'400 mi per lounge',         icon:'coffee',   cat:'lounge', action:TR?'Haritada Bul':'Find' },
+            { name:'Airport WiFi Rentals', offer:TR?'Kiralama başına 100 Mil':'100 mi per rental',       icon:'wifi',     cat:'wifi',   action:TR?'Aktifleştir':'Activate' },
+            { name:'Garanti BBVA',         offer:TR?'Her 5 TL\'ye 1 Mil':'1 mi per 5 TL',               icon:'cardIcon', cat:'bank',   action:TR?'Aktifleştir':'Activate' },
+            { name:'Divan Brasserie',      offer:TR?'%10 + 200 Mil/menü':'10% + 200 mi/menu',            icon:'coffee',   cat:'dining', action:TR?'Haritada Bul':'Find' },
+          ];
+          const visible = cat === 'all' ? ALL_PARTNERS : ALL_PARTNERS.filter(p => p.cat === cat);
+          return (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {visible.map(p => (
+                <PartnerItem key={p.name} name={p.name} offer={p.offer}
+                  icon={<Icon name={p.icon} size={16} />} actionLabel={p.action} />
+              ))}
+              {visible.length === 0 && (
+                <div style={{ padding: '18px 0', textAlign: 'center', fontSize: 12, color: '#7A8EAF' }}>
+                  {TR ? 'Bu kategoride partner yok' : 'No partners in this category'}
+                </div>
+              )}
+            </div>
+          );
+        })()}
       </div>
 
       <div style={{ marginTop: 'auto', paddingTop: 14 }}>

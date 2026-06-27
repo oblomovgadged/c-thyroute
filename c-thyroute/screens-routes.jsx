@@ -92,11 +92,12 @@ function SavedRoutesScreen({ t, nav, k }) {
     setTimeout(() => setSharedId(null), 1600);
   };
   const payNow = (route) => {
-    // Persist selected route in localStorage so the Payment screen reads it
-    try {
-      localStorage.setItem('thy-route-pay-target-v1', JSON.stringify(route));
-    } catch (_) {}
+    try { localStorage.setItem('thy-route-pay-target-v1', JSON.stringify(route)); } catch (_) {}
     nav('payment');
+  };
+  const setAlarm = (route) => {
+    try { localStorage.setItem('thy-route-alarm-target-v1', JSON.stringify(route)); } catch (_) {}
+    nav('priceAlert');
   };
 
   return (
@@ -204,6 +205,15 @@ function SavedRoutesScreen({ t, nav, k }) {
 
             {/* Actions */}
             <div style={{ display: 'flex', gap: 5 }}>
+              <button onClick={() => setAlarm(r)} title={u.lang === 'tr' ? 'Fiyat alarmı kur' : 'Set price alert'} style={{
+                ...krMiniBtn,
+                color: '#C5A059',
+                border: '1px solid rgba(197,160,89,0.45)',
+                background: 'rgba(197,160,89,0.08)',
+              }}>
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10 21a2 2 0 0 0 4 0"/></svg>
+                {u.lang === 'tr' ? 'Alarm' : 'Alert'}
+              </button>
               <button onClick={() => share(r.id, r.pnr)} style={krMiniBtn}>
                 <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.6" y1="13.5" x2="15.4" y2="17.5"/><line x1="15.4" y1="6.5" x2="8.6" y2="10.5"/></svg>
                 {u.lang === 'tr' ? 'Paylaş' : 'Share'}

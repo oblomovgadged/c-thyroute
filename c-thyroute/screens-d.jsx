@@ -9,31 +9,92 @@
 // =================================================================
 // 14 ▸ PRICE ALERT — Trading terminal
 // =================================================================
+// fmtTL helper (mobil)
+function fmtTL(n) { return Math.round(n).toLocaleString('tr-TR'); }
+
+// Rota fiyatını kabin tipine göre bileşenlerine ayırır
+function mobileBreakdown(route) {
+  const total = parseInt(String(route.price || '0').replace(/[^\d]/g, ''), 10) / 100 || 0;
+  const isBiz = /business|prime/i.test(route.cabin || '');
+  return {
+    total,
+    flight: Math.round(total * (isBiz ? 0.73 : 0.62)),
+    hotel:  Math.round(total * (isBiz ? 0.22 : 0.31)),
+    vip:    Math.round(total * (isBiz ? 0.05 : 0.07)),
+  };
+}
+
 function PriceAlertScreen({ t, nav, k }) {
   const u = useThyTweaks(t, { dark: true });
   const topPad = k === 'ios' ? 50 : 14;
   const toast = useToast();
-  const [target, setTarget] = React.useState(4500);
 
-  // 30-day price walk
-  const data = React.useMemo(() => {
-    const out = []; let v = 5640;
-    for (let i = 0; i < 30; i++) {
-      v += (Math.sin(i * 0.6) * 120) + ((i % 5 === 0) ? -180 : 60);
-      out.push(Math.max(3900, Math.min(6800, Math.round(v))));
-    }
-    return out;
+  // Route mode — Kayıtlı Rotalarım'dan alarm butonu ile gelindiğinde
+  const routeData = React.useMemo(() => {
+    try {
+      const raw = localStorage.getItem('thy-route-alarm-target-v1');
+      return raw ? JSON.parse(raw) : null;
+    } catch (_) { return null; }
   }, []);
-  const min = Math.min(...data), max = Math.max(...data);
+  const routeMode = !!routeData;
+  const breakdown = routeMode ? mobileBreakdown(routeData) : null;
+  const totalTL   = breakdown ? breakdown.total : 5640;
+
+  // Adaptif slider aralığı
+  const sliderMin  = routeMode ? Math.round(totalTL * 0.70 / 500) * 500 : 3900;
+  const sliderMax  = routeMode ? Math.round(totalTL * 1.05 / 500) * 500 : 6800;
+  const sliderStep = routeMode ? (totalTL > 50000 ? 500 : totalTL > 10000 ? 100 : 50) : 50;
+  const initTarget = routeMode ? Math.round(totalTL * 0.88 / sliderStep) * sliderStep : 4500;
+  const [target, setTarget] = React.useState(initTarget);
+
+  // 30 günlük simüle fiyat hareketi
+  const data = React.useMemo(() => {
+    const out = []; const base = totalTL;
+    for (let i = 0; i < 30; i++) {
+      const noise = Math.sin(i * 0.6) * (base * 0.06) + Math.cos(i * 0.31) * (base * 0.035)
+                  + ((i % 5 === 0) ? -base * 0.03 : base * 0.012);
+      out.push(Math.round(Math.max(base * 0.78, Math.min(base * 1.12, base + noise))));
+    }
+    out[out.length - 1] = base; // son nokta = gerçek toplam
+    return out;
+  }, [totalTL]);
+
+  const cMin = Math.min(...data), cMax = Math.max(...data);
   const cur = data[data.length - 1];
   const delta = cur - data[0];
+  const savingsAbs = Math.max(0, cur - target);
+  const savingsPct = cur > 0 ? ((1 - target / cur) * 100) : 0;
+
   const W = 320, H = 110;
   const points = data.map((v, i) => {
     const x = (i / (data.length - 1)) * W;
-    const y = H - ((v - min) / (max - min)) * H;
+    const y = H - ((v - cMin) / (cMax - cMin || 1)) * H;
     return `${x.toFixed(1)},${y.toFixed(1)}`;
   }).join(' ');
-  const targetY = H - ((target - min) / (max - min)) * H;
+  const targetClamped = Math.max(cMin, Math.min(cMax, target));
+  const targetY = H - ((targetClamped - cMin) / (cMax - cMin || 1)) * H;
+
+  const legsLabel = routeMode ? (routeData.legs || []).join('·') : 'IST·FCO';
+
+  const handleSetAlarm = () => {
+    try {
+      const list = JSON.parse(localStorage.getItem('thy-route-alarms-v1') || '[]');
+      list.unshift({
+        routeId:   routeData?.id || null,
+        routeName: routeData?.name || 'IST → FCO',
+        legs:      routeData?.legs || ['IST','FCO'],
+        currentTL: cur, targetTL: target,
+        savingsTL: savingsAbs,
+        setAt:     new Date().toISOString(),
+      });
+      localStorage.setItem('thy-route-alarms-v1', JSON.stringify(list.slice(0, 50)));
+      localStorage.removeItem('thy-route-alarm-target-v1');
+    } catch (_) {}
+    toast({ type: 'success', icon: '🔔', children: u.lang === 'tr'
+      ? `Alarm kuruldu · ${fmtTL(target)} TL · tasarruf ${fmtTL(savingsAbs)} TL`
+      : `Alert set · ${fmtTL(target)} TL · save ${fmtTL(savingsAbs)} TL` });
+    setTimeout(() => nav(routeMode ? 'routes' : 'notifications'), 700);
+  };
 
   return (
     <div className="screen-enter" style={{
@@ -46,136 +107,172 @@ function PriceAlertScreen({ t, nav, k }) {
         padding: `${topPad}px 14px 10px`, background: '#0B1A14',
         borderBottom: '1px solid #1A3326', display: 'flex', alignItems: 'center', gap: 10,
       }}>
-        <button onClick={() => nav('search')} style={{
+        <button onClick={() => nav(routeMode ? 'routes' : 'search')} style={{
           background: '#1A3326', border: '1px solid #2A4D3A',
           color: '#E5F3EA', padding: '6px 10px', borderRadius: 2,
           cursor: 'pointer', fontFamily: 'inherit', fontSize: 11,
-        }}>← BACK</button>
-        <span style={{ fontSize: 10, color: '#5B8773', letterSpacing: 1 }}>TERM·14 / PRICE ALERT</span>
+        }}>← {routeMode ? (u.lang === 'tr' ? 'ROTALARIM' : 'ROUTES') : 'BACK'}</button>
+        <span style={{ fontSize: 10, color: '#5B8773', letterSpacing: 1 }}>
+          {routeMode ? `ROUTE ALERT · ${routeData.id || ''}` : 'PRICE ALERT'}
+        </span>
         <span style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
           <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#22C55E', boxShadow: '0 0 8px #22C55E' }} />
           <span style={{ fontSize: 10, color: '#22C55E' }}>LIVE</span>
         </span>
       </div>
 
-      {/* ticker */}
-      <div style={{ padding: '14px 16px 0' }}>
-        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
-          <div>
-            <span style={{ fontSize: 14, color: '#5B8773' }}>IST·FCO</span>
-            <span style={{ fontSize: 10, color: '#5B8773', marginLeft: 10 }}>30D · MID</span>
+      {/* Rota kırılım paneli — sadece route mode */}
+      {routeMode && (
+        <div style={{
+          margin: '10px 14px 0',
+          background: 'linear-gradient(135deg, rgba(197,160,89,0.10) 0%, rgba(10,22,40,0.3) 100%)',
+          border: '1px solid rgba(197,160,89,0.35)', borderRadius: 6, padding: '12px 14px',
+        }}>
+          <div style={{ fontSize: 9, letterSpacing: 1.8, color: '#C5A059', fontWeight: 800, marginBottom: 6 }}>
+            ✦ {u.lang === 'tr' ? 'KAYITLI ROTA · TOPLAM' : 'SAVED ROUTE · TOTAL'}
           </div>
-          <span style={{ fontSize: 10, color: '#5B8773' }}>EconomyClass</span>
+          <div style={{ fontFamily: 'var(--font-heading)', fontSize: 15, fontWeight: 700, color: '#F4EBD9', marginBottom: 8 }}>
+            {routeData.name}
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6, marginBottom: 8 }}>
+            {[
+              { l: u.lang==='tr'?'UÇUŞ':'FLIGHT',   v: breakdown.flight, icon: '✈' },
+              { l: u.lang==='tr'?'OTEL':'HOTEL',    v: breakdown.hotel,  icon: '🏨' },
+              { l: u.lang==='tr'?'VIP':'VIP',       v: breakdown.vip,    icon: '🚘' },
+            ].map(item => (
+              <div key={item.l} style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: 8.5, color: '#5B8773', letterSpacing: 1.4, fontWeight: 800 }}>{item.icon} {item.l}</div>
+                <div style={{ fontSize: 12, color: '#E5F3EA', fontWeight: 600, marginTop: 2 }}>{fmtTL(item.v)}</div>
+              </div>
+            ))}
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline',
+            paddingTop: 8, borderTop: '1px solid rgba(197,160,89,0.25)' }}>
+            <span style={{ fontSize: 9, color: '#C5A059', fontWeight: 800, letterSpacing: 1.4 }}>= TOPLAM</span>
+            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 20, color: '#E5C97A', fontWeight: 700 }}>
+              {fmtTL(breakdown.total)} <span style={{ fontSize: 10, color: '#C5A059' }}>TL</span>
+            </span>
+          </div>
         </div>
-        <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginTop: 6 }}>
-          <span style={{ fontSize: 42, fontWeight: 500, letterSpacing: -1, color: '#fff' }}>
-            {cur.toLocaleString('tr-TR')}
+      )}
+
+      {/* ticker */}
+      <div style={{ padding: '12px 14px 0' }}>
+        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
+          <span style={{ fontSize: 13, color: '#5B8773' }}>{legsLabel}</span>
+          <span style={{ fontSize: 10, color: '#5B8773' }}>{u.lang==='tr'?'SON 30G':'LAST 30D'}</span>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginTop: 4 }}>
+          <span style={{ fontSize: 36, fontWeight: 500, letterSpacing: -1, color: '#fff' }}>
+            {fmtTL(cur)}
           </span>
-          <span style={{ fontSize: 13, color: '#5B8773' }}>TL</span>
+          <span style={{ fontSize: 12, color: '#5B8773' }}>TL</span>
           <span style={{
-            marginLeft: 'auto', padding: '3px 8px',
+            marginLeft: 'auto', padding: '3px 7px',
             background: delta >= 0 ? 'rgba(239,46,31,0.15)' : 'rgba(34,197,94,0.15)',
-            color:      delta >= 0 ? '#EF6F66' : '#22C55E',
-            borderRadius: 2, fontSize: 11, fontWeight: 600,
-          }}>{delta >= 0 ? '▲' : '▼'} {Math.abs(delta).toLocaleString('tr-TR')} ({(delta/data[0]*100).toFixed(2)}%)</span>
+            color: delta >= 0 ? '#EF6F66' : '#22C55E',
+            borderRadius: 2, fontSize: 10, fontWeight: 600,
+          }}>{delta >= 0 ? '▲' : '▼'} {fmtTL(Math.abs(delta))}</span>
         </div>
       </div>
 
       {/* chart */}
-      <div style={{ padding: '14px 0 6px', position: 'relative', overflow: 'hidden' }}>
+      <div style={{ padding: '10px 0 4px', overflow: 'hidden' }}>
         <svg viewBox={`0 0 ${W} ${H + 18}`} width="100%" preserveAspectRatio="none" style={{ display: 'block' }}>
-          {/* grid */}
           {[0,1,2,3,4].map(i => (
             <line key={i} x1="0" x2={W} y1={(i/4)*H} y2={(i/4)*H}
               stroke="#1A3326" strokeWidth="0.5" strokeDasharray="2 3" />
           ))}
-          {/* fill */}
-          <polygon
-            points={`0,${H} ${points} ${W},${H}`}
-            fill="url(#grad)"
-          />
+          <polygon points={`0,${H} ${points} ${W},${H}`} fill="url(#grad-m)" />
           <defs>
-            <linearGradient id="grad" x1="0" x2="0" y1="0" y2="1">
+            <linearGradient id="grad-m" x1="0" x2="0" y1="0" y2="1">
               <stop offset="0%" stopColor="#22C55E" stopOpacity="0.35" />
               <stop offset="100%" stopColor="#22C55E" stopOpacity="0" />
             </linearGradient>
           </defs>
-          {/* target line */}
-          <line x1="0" x2={W} y1={targetY} y2={targetY}
-            stroke="#C5A059" strokeWidth="1" strokeDasharray="4 3" />
-          <rect x={W - 50} y={targetY - 9} width="50" height="14" fill="#C5A059" />
-          <text x={W - 25} y={targetY + 1} fill="#0A1628" fontSize="10" textAnchor="middle" fontWeight="700">TARGET</text>
-          {/* line */}
+          <line x1="0" x2={W} y1={targetY} y2={targetY} stroke="#C5A059" strokeWidth="1.2" strokeDasharray="4 3" />
+          <rect x={W - 52} y={targetY - 9} width="52" height="14" fill="#C5A059" />
+          <text x={W - 26} y={targetY + 1} fill="#0A1628" fontSize="9" textAnchor="middle" fontWeight="800">
+            {u.lang==='tr'?'HEDEF':'TARGET'}
+          </text>
           <polyline points={points} fill="none" stroke="#22C55E" strokeWidth="1.5" strokeLinejoin="round" strokeLinecap="round" />
-          {/* current dot */}
-          <circle cx={W} cy={H - ((cur - min)/(max - min))*H} r="3.5" fill="#22C55E" />
-          <circle cx={W} cy={H - ((cur - min)/(max - min))*H} r="7" fill="#22C55E" opacity="0.25">
+          <circle cx={W} cy={H - ((cur - cMin)/(cMax - cMin || 1))*H} r="3.5" fill="#22C55E" />
+          <circle cx={W} cy={H - ((cur - cMin)/(cMax - cMin || 1))*H} r="7" fill="#22C55E" opacity="0.25">
             <animate attributeName="r" values="3.5;9;3.5" dur="2s" repeatCount="indefinite" />
           </circle>
         </svg>
       </div>
 
-      {/* mini stats grid */}
-      <div style={{
-        display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)',
-        borderTop: '1px solid #1A3326', borderBottom: '1px solid #1A3326',
-        margin: '6px 0',
-      }}>
-        <TermStat label="LOW"  value={min.toLocaleString('tr-TR')} />
-        <TermStat label="HIGH" value={max.toLocaleString('tr-TR')} />
-        <TermStat label="AVG"  value={Math.round(data.reduce((a,b) => a+b, 0)/data.length).toLocaleString('tr-TR')} />
-        <TermStat label="VOL"  value="2.3K"  last />
+      {/* mini stats */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)',
+        borderTop: '1px solid #1A3326', borderBottom: '1px solid #1A3326', margin: '4px 0' }}>
+        <TermStat label={u.lang==='tr'?'DÜŞÜK':'LOW'}   value={fmtTL(cMin)} />
+        <TermStat label={u.lang==='tr'?'YÜKSEK':'HIGH'} value={fmtTL(cMax)} />
+        <TermStat label={u.lang==='tr'?'GÜNCEL':'CUR'}  value={fmtTL(cur)} />
+        <TermStat label={u.lang==='tr'?'HEDEF':'TGT'}   value={fmtTL(target)} last />
       </div>
 
       {/* target slider */}
-      <div style={{ padding: '16px 16px 12px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: '#5B8773' }}>
-          <span>SET TARGET PRICE</span>
-          <span>RANGE 3 900–6 800 TL</span>
+      <div style={{ padding: '14px 14px 10px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 9.5, color: '#C5A059', fontWeight: 800, letterSpacing: 1.4 }}>
+          <span>✦ {u.lang==='tr'?'HEDEF FİYATI AYARLA':'SET TARGET PRICE'}</span>
+          <span style={{ color: '#5B8773' }}>{fmtTL(sliderMin)}–{fmtTL(sliderMax)}</span>
         </div>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginTop: 6 }}>
-          <span style={{ fontSize: 30, color: '#C5A059', fontWeight: 500, letterSpacing: -0.5 }}>
-            {target.toLocaleString('tr-TR')}
+          <span style={{ fontSize: 34, color: '#E5C97A', fontWeight: 600, letterSpacing: -1 }}>
+            {fmtTL(target)}
           </span>
-          <span style={{ fontSize: 12, color: '#5B8773' }}>TL</span>
-          <span style={{ marginLeft: 'auto', fontSize: 11, color: '#5B8773' }}>
-            -{((1 - target/cur)*100).toFixed(1)}% {u.lang==='tr'?'altında uyar':'below alert'}
+          <span style={{ fontSize: 12, color: '#C5A059' }}>TL</span>
+          <span style={{ marginLeft: 'auto', fontSize: 11,
+            color: savingsAbs > 0 ? '#22C55E' : '#EF6F66', fontWeight: 700 }}>
+            {savingsAbs > 0 ? '−' : '+'}{fmtTL(Math.abs(cur - target))} TL
+            <span style={{ color: '#5B8773', fontWeight: 400, marginLeft: 3 }}>
+              ({savingsAbs > 0 ? '-' : '+'}{Math.abs(savingsPct).toFixed(1)}%)
+            </span>
           </span>
         </div>
-        <input type="range" min={3900} max={6800} step={50}
+        <input type="range" min={sliderMin} max={sliderMax} step={sliderStep}
           value={target} onChange={(e) => setTarget(parseInt(e.target.value, 10))}
-          style={{
-            width: '100%', marginTop: 10, accentColor: '#C5A059',
-          }} />
+          style={{ width: '100%', marginTop: 10, accentColor: '#C5A059' }} />
+        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 9, color: '#5B8773', marginTop: 2 }}>
+          <span>{fmtTL(sliderMin)} TL</span><span>{fmtTL(sliderMax)} TL</span>
+        </div>
       </div>
 
       {/* freq chips */}
-      <div style={{ padding: '4px 16px 14px', display: 'flex', gap: 6 }}>
+      <div style={{ padding: '2px 14px 12px', display: 'flex', gap: 6 }}>
         {[
-          { id: 'inst', l: u.lang==='tr'?'Anında':'Instant' },
-          { id: 'day',  l: u.lang==='tr'?'Günde 1':'Daily' },
-          { id: 'wk',   l: u.lang==='tr'?'Haftada 1':'Weekly' },
-        ].map((o, i) => (
+          { id: 'inst', l: u.lang==='tr'?'Anında':'Instant', on: true },
+          { id: 'day',  l: u.lang==='tr'?'Günde':'Daily' },
+          { id: 'wk',   l: u.lang==='tr'?'Haftada':'Weekly' },
+        ].map(o => (
           <button key={o.id} style={{
-            flex: 1, padding: '10px 6px', borderRadius: 2,
-            background: i === 0 ? '#1A3326' : 'transparent',
-            color: i === 0 ? '#22C55E' : '#5B8773',
-            border: '1px solid ' + (i === 0 ? '#22C55E' : '#1A3326'),
-            fontFamily: 'inherit', fontSize: 11, cursor: 'pointer',
+            flex: 1, padding: '9px 4px', borderRadius: 2,
+            background: o.on ? '#1A3326' : 'transparent',
+            color: o.on ? '#22C55E' : '#5B8773',
+            border: '1px solid ' + (o.on ? '#22C55E' : '#1A3326'),
+            fontFamily: 'inherit', fontSize: 10.5, cursor: 'pointer',
             textTransform: 'uppercase', letterSpacing: 1,
           }}>{o.l}</button>
         ))}
       </div>
 
-      <div style={{ padding: '0 16px 18px', marginTop: 'auto', display: 'flex', gap: 8 }}>
-        <button onClick={() => {
-          toast({ type: 'success', icon: '🔔', children: u.lang==='tr'?`Alarm kuruldu · ${target.toLocaleString('tr-TR')} TL`:`Alert set · ${target.toLocaleString('tr-TR')} TL` });
-          setTimeout(() => nav('notifications'), 600);
-        }} style={{
-          flex: 1, padding: '14px', background: '#22C55E', color: '#08120D',
-          border: 'none', borderRadius: 2, fontFamily: 'inherit',
-          fontWeight: 700, fontSize: 13, cursor: 'pointer', letterSpacing: 1,
-        }}>EXECUTE · SET ALERT</button>
+      {/* CTA */}
+      <div style={{ padding: '0 14px 22px', marginTop: 'auto' }}>
+        <button onClick={handleSetAlarm} style={{
+          width: '100%', padding: '15px',
+          background: 'linear-gradient(135deg, #C5A059 0%, #E5C97A 100%)',
+          color: '#1A1206', border: 'none', borderRadius: 4,
+          fontFamily: 'inherit', fontWeight: 800, fontSize: 13, cursor: 'pointer', letterSpacing: 1.2,
+          boxShadow: '0 8px 22px rgba(197,160,89,0.40)',
+        }}>✦ {u.lang==='tr'?'ALARMI KUR':'SET ALERT'} →</button>
+        {savingsAbs > 0 && (
+          <div style={{ marginTop: 10, fontSize: 10.5, color: '#5B8773', textAlign: 'center', lineHeight: 1.5 }}>
+            {u.lang==='tr'
+              ? `Fiyat ${fmtTL(target)} TL altına düşünce bildirim alırsın · tasarruf ${fmtTL(savingsAbs)} TL`
+              : `Alert when price drops below ${fmtTL(target)} TL · save ${fmtTL(savingsAbs)} TL`}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -452,7 +549,10 @@ function TurkiyeTuruScreen({ t, nav, k }) {
           scrollSnapType: 'x mandatory',
         }}>
           {TR_TOURS.map(tr => (
-            <TourCard key={tr.id} tour={tr} lang={u.lang} />
+            <TourCard key={tr.id} tour={tr} lang={u.lang} onSelect={() => {
+              if (typeof thyBuildSelection === 'function') thyBuildSelection(tr);
+              nav('turkiyeRoute');
+            }} />
           ))}
         </div>
 
@@ -512,16 +612,21 @@ const TR_TOURS = [
     days:  { tr: '6 gün',  en: '6 days' },  price: '18.900', badge: 'YENİ' },
 ];
 
-function TourCard({ tour, lang }) {
+function TourCard({ tour, lang, onSelect }) {
   return (
-    <div style={{
+    <div onClick={onSelect} style={{
       minWidth: 178, maxWidth: 178, scrollSnapAlign: 'start',
       background: '#F4EBD9', color: '#0E0E0E',
       border: '1.5px solid #0E0E0E', borderRadius: 0,
       boxShadow: '3px 3px 0 #F4C24C',
       flexShrink: 0, overflow: 'hidden',
       display: 'flex', flexDirection: 'column',
-    }}>
+      cursor: onSelect ? 'pointer' : 'default',
+      transition: 'transform 120ms ease, box-shadow 120ms ease',
+    }}
+    onMouseEnter={e => { if (onSelect) { e.currentTarget.style.transform='translateY(-2px)'; e.currentTarget.style.boxShadow='3px 5px 0 #F4C24C'; } }}
+    onMouseLeave={e => { e.currentTarget.style.transform=''; e.currentTarget.style.boxShadow='3px 3px 0 #F4C24C'; }}
+    >
       {/* colored top cover with big glyph + volume */}
       <div style={{
         position: 'relative', height: 78, padding: '8px 10px',
@@ -592,6 +697,16 @@ function TurkiyeRouteScreen({ t, nav, k }) {
     { d: '14·06', time: '13:00', city: 'Trabzon',   code: 'TZX', nights: 2, notes: 'Sumela · yayla',         color: '#1F4D80' },
   ];
 
+  // Duraklar arası hava yolu belirleyici
+  function airlineFor(fromCode, toCode, idx) {
+    const SHORT = new Set(['NAV-DNZ','DNZ-NAV','DNZ-AYT','AYT-DNZ','AYT-ADB','ADB-AYT','ADB-DNZ']);
+    const isShort = SHORT.has(fromCode + '-' + toCode);
+    const seed = (fromCode.charCodeAt(0) + toCode.charCodeAt(0) + idx * 7) % 900;
+    return isShort
+      ? { code: 'AJ', name: 'AnadoluJet', color: '#E8450A', flight: 'AJ\u00a0' + (1100 + seed) }
+      : { code: 'TK', name: 'THY',        color: '#B7312C', flight: 'TK\u00a0' + (1800 + seed) };
+  }
+
   return (
     <div className="screen-enter" style={{
       minHeight: '100%',
@@ -632,32 +747,58 @@ function TurkiyeRouteScreen({ t, nav, k }) {
           <span>DATE</span><span>DEP</span><span>STATION</span><span style={{ textAlign: 'right' }}>N</span>
         </div>
         {stops.map((s, i) => (
-          <div key={s.code} style={{
-            display: 'grid', gridTemplateColumns: '54px 50px 1fr 36px',
-            gap: 8, padding: '10px 0', borderBottom: i < stops.length-1 ? '1px dashed #1F1A1455' : 'none',
-            alignItems: 'flex-start',
-          }}>
-            <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 13, fontWeight: 500 }}>{s.d}</span>
-            <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 13, color: '#525252' }}>{s.time}</span>
-            <div>
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
-                <span style={{
-                  width: 8, height: 8, borderRadius: '50%', background: s.color, display: 'inline-block',
-                }} />
-                <span style={{
-                  fontFamily: "'Playfair Display', serif", fontWeight: 700, fontSize: 18, lineHeight: 1,
-                }}>{s.city}</span>
-                <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: '#525252', letterSpacing: 1 }}>{s.code}</span>
+          <React.Fragment key={s.code}>
+            <div style={{
+              display: 'grid', gridTemplateColumns: '54px 50px 1fr 36px',
+              gap: 8, padding: '10px 0', borderBottom: i < stops.length-1 ? '1px dashed #1F1A1455' : 'none',
+              alignItems: 'flex-start',
+            }}>
+              <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 13, fontWeight: 500 }}>{s.d}</span>
+              <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 13, color: '#525252' }}>{s.time}</span>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
+                  <span style={{
+                    width: 8, height: 8, borderRadius: '50%', background: s.color, display: 'inline-block',
+                  }} />
+                  <span style={{
+                    fontFamily: "'Playfair Display', serif", fontWeight: 700, fontSize: 18, lineHeight: 1,
+                  }}>{s.city}</span>
+                  <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: '#525252', letterSpacing: 1 }}>{s.code}</span>
+                </div>
+                <div style={{ fontSize: 12, fontStyle: 'italic', color: '#525252', marginLeft: 16, marginTop: 2 }}>
+                  {s.notes}
+                </div>
               </div>
-              <div style={{ fontSize: 12, fontStyle: 'italic', color: '#525252', marginLeft: 16, marginTop: 2 }}>
-                {s.notes}
-              </div>
+              <span style={{
+                textAlign: 'right', fontFamily: "'Bebas Neue', sans-serif",
+                fontSize: 20, color: s.color,
+              }}>{s.nights}</span>
             </div>
-            <span style={{
-              textAlign: 'right', fontFamily: "'Bebas Neue', sans-serif",
-              fontSize: 20, color: s.color,
-            }}>{s.nights}</span>
-          </div>
+            {/* Duraklar arası uçuş bağlantısı */}
+            {i < stops.length - 1 && (() => {
+              const al = airlineFor(s.code, stops[i+1].code, i);
+              return (
+                <div style={{
+                  display: 'flex', alignItems: 'center', gap: 8,
+                  padding: '6px 0 6px 16px', margin: '0 0 0 4px',
+                  borderLeft: '2px dashed ' + al.color + '55',
+                }}>
+                  <span style={{
+                    padding: '2px 6px', borderRadius: 2,
+                    background: al.color + '14', border: '1px solid ' + al.color + '44',
+                    fontFamily: "'DM Mono', monospace", fontSize: 9, fontWeight: 800,
+                    color: al.color, letterSpacing: 1.4,
+                  }}>{al.flight}</span>
+                  <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 9, color: '#525252', letterSpacing: 1 }}>
+                    {al.name}
+                  </span>
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill={al.color} style={{ marginLeft: 2 }}>
+                    <path d="M21 16v-2l-8-5V3.5a1.5 1.5 0 0 0-3 0V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1L15 22v-1.5L13 19v-5.5z"/>
+                  </svg>
+                </div>
+              );
+            })()}
+          </React.Fragment>
         ))}
       </div>
 
@@ -681,14 +822,30 @@ function TurkiyeRouteScreen({ t, nav, k }) {
             <div style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 30, letterSpacing: 1 }}>32.400 <span style={{ fontSize: 14 }}>TL</span></div>
           </div>
           <button onClick={() => {
-            toast({ type: 'success', icon: '✓', children: u.lang==='tr'?'Tur rotaya eklendi':'Tour added to route' });
-            setTimeout(() => nav('turkiyeRoute'), 600);
+            try {
+              const rec = {
+                id: 'TRIP-' + stops.map(s=>s.code[0]).join('') + Date.now().toString(36).slice(-3).toUpperCase(),
+                name: u.lang==='tr'?'Türkiye Grand Turu':'Türkiye Grand Tour',
+                legs: stops.map(s=>s.code).slice(0,4),
+                dates: stops[0].d + ' – ' + stops[stops.length-1].d,
+                pax: u.lang==='tr'?'1 yetişkin':'1 adult',
+                miles: '+4.820', price: '32\u00a0400,00',
+                status: { label: u.lang==='tr'?'PLANLANIYOR':'PLANNED', tone: 'navy' },
+                cabin: 'EcoFly',
+                eta: u.lang==='tr'?'Rota hazır':'Route ready',
+              };
+              const list = JSON.parse(localStorage.getItem('thy-route-selections-v1')||'[]');
+              if (!list.some(r=>r.id===rec.id)) { list.unshift(rec); }
+              localStorage.setItem('thy-route-selections-v1', JSON.stringify(list));
+            } catch(_) {}
+            toast({ type: 'success', icon: '✓', children: u.lang==='tr'?'Rota kaydedildi':'Route saved' });
+            setTimeout(() => nav('map'), 600);
           }} style={{
             background: '#F0E4CD', color: '#1F1A14', border: '1px solid #F0E4CD',
             padding: '12px 18px', borderRadius: 0,
             fontFamily: "'Playfair Display', serif", fontWeight: 700, fontStyle: 'italic',
             fontSize: 14, cursor: 'pointer',
-          }}>{u.lang==='tr'?'Rotayı rezerve et':'Reserve route'} →</button>
+          }}>{u.lang==='tr'?'Rotasını rezerve et':'Reserve route'} →</button>
         </div>
       </div>
     </div>
@@ -775,7 +932,7 @@ function CheckInScreen({ t, nav, k }) {
           fontFamily: "'Playfair Display', serif", fontWeight: 500,
           fontSize: 30, letterSpacing: -0.5, lineHeight: 1.15, color: '#0A0A0A',
         }}>
-          {stage === 'intro' && (u.lang==='tr'?'Pasaportunuzu telefona yaklaştırın.':'Tap your passport to phone.')}
+          {stage === 'intro' && (u.lang==='tr'?'Biniş kartınızın QR kodunu okutun.':'Scan your boarding pass QR code.')}
           {stage === 'scan'  && (u.lang==='tr'?'Okunuyor…':'Reading…')}
           {stage === 'done'  && (u.lang==='tr'?'Hoş geldiniz, Aylin.':'Welcome aboard, Aylin.')}
         </h1>
@@ -783,7 +940,7 @@ function CheckInScreen({ t, nav, k }) {
           marginTop: 10, textAlign: 'center',
           fontSize: 12, color: '#737373', maxWidth: 280, fontStyle: 'italic',
         }}>
-          {stage === 'intro' && (u.lang==='tr'?'NFC çipi otomatik okuyacak. Bilgileriniz cihazınızdan çıkmaz.':'NFC chip will be read automatically. No data leaves your device.')}
+          {stage === 'intro' && (u.lang==='tr'?'Kameranızı biniş kartınızdaki QR koduna doğrultun. Bilgileriniz cihazınızdan çıkmaz.':'Point your camera at the QR code on your boarding pass. No data leaves your device.')}
           {stage === 'scan'  && (u.lang==='tr'?'Lütfen sabit tutun. Bu işlem ~3 saniye sürer.':'Please hold steady. This takes about 3 seconds.')}
           {stage === 'done'  && (u.lang==='tr'?'14F sizin · biniş 13:55 · kapı A12':'Seat 14F · boarding 13:55 · gate A12')}
         </p>
@@ -797,7 +954,7 @@ function CheckInScreen({ t, nav, k }) {
             background: '#0A0A0A', color: '#FAFAFA', border: 'none', borderRadius: 999,
             fontFamily: 'inherit', fontSize: 14, fontWeight: 500, letterSpacing: 1,
             cursor: 'pointer', textTransform: 'uppercase',
-          }}>{u.lang==='tr'?'Taramayı başlat':'Begin scan'}</button>
+          }}>{u.lang==='tr'?'QR\'ı Tara':'Scan QR Code'}</button>
         )}
         {stage === 'scan' && (
           <div style={{ textAlign: 'center', fontFamily: "'DM Mono', monospace", fontSize: 11, color: '#737373' }}>

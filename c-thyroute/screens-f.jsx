@@ -846,11 +846,16 @@ function TKPayScreen({ t, nav, k }) {
 function InviteAcceptScreen({ t, nav, k }) {
   const u = useThyTweaks(t, { dark: true });
   const topPad = k === 'ios' ? 50 : 14;
-  const toast = useToast();
-  const [booking, , h] = useBooking();
+  const toast = (typeof useToast === 'function') ? useToast() : null;
+  const safeToast = (msg) => toast && toast(msg);
+  // Stable TRIP ID — don't call Math.random() during render
+  const tripId = React.useMemo(() => String(Math.floor(Math.random() * 9000) + 1000), []);
+  const bookingResult = (typeof useBooking === 'function') ? useBooking() : [{ toCode: 'FCO' }, null, { to: null, from: null }];
+  const booking = bookingResult[0] || { toCode: 'FCO' };
+  const h = bookingResult[2] || {};
   const destCode = booking.toCode || 'FCO';
-  const toC = h.to || (typeof findCity === 'function' ? findCity(destCode) : { code: destCode, city: destCode });
-  const fromC = h.from || (typeof findCity === 'function' ? findCity('IST') : { code: 'IST', city: 'İstanbul' });
+  const toC = h.to || (typeof findCity === 'function' ? findCity(destCode) : null) || { code: destCode, city: destCode };
+  const fromC = h.from || (typeof findCity === 'function' ? findCity('IST') : null) || { code: 'IST', city: 'İstanbul' };
 
   // Mock inviter — in real life the link decodes the inviter id
   const inviter = { name: 'Ahmet Kaya', initials: 'AK', color: '#C5A059' };
@@ -941,7 +946,7 @@ function InviteAcceptScreen({ t, nav, k }) {
             <span style={{
               fontFamily: 'var(--font-mono)', fontSize: 9, letterSpacing: 2.2,
               color: '#C5A059', fontWeight: 800,
-            }}>TRIP · {String(Math.floor(Math.random()*9000)+1000)}</span>
+            }}>TRIP · {tripId}</span>
             <span style={{
               padding: '3px 8px', borderRadius: 999,
               background: 'rgba(34,197,94,0.14)', border: '1px solid rgba(34,197,94,0.32)',
@@ -1049,7 +1054,7 @@ function InviteAcceptScreen({ t, nav, k }) {
         display: 'flex', flexDirection: 'column', gap: 8,
       }}>
         <button onClick={() => {
-          toast({ type: 'success', icon: '✓', children: u.lang==='tr' ? `${tripName}'ne katıldın` : `Joined ${tripName}` });
+          safeToast({ type: 'success', icon: '✓', children: u.lang==='tr' ? `${tripName}'ne katıldın` : `Joined ${tripName}` });
           setTimeout(() => nav('map'), 600);
         }} style={{
           padding: '14px 18px', cursor: 'pointer',
