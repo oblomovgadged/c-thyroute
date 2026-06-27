@@ -1,8 +1,8 @@
 # Rota / Harita Ekranı — Screen Doc
 
 > ID: `map` · Num: 06
-> Dosya: `web-screens-b.jsx` (satır 6–)
-> Güncelleme: 2026-06-27
+> Dosya: `web-screens-b.jsx` (satır 6–) + `screens-b.jsx` (mobil)
+> Güncelleme: 2026-06-28
 
 ---
 
@@ -20,6 +20,8 @@ Seçilen destinasyona ait **şehir haritası**, **3 günlük plan** ve **Keşfet
 | `confirm (14)` Onay | "Rotayı kaydet ve haritada gör" (600ms) |
 | `boarding (05)` Biniş Kartı | "Rota haritasına git" butonu |
 | `profile (10)` → `routes (24)` Rotalarım | "Rotaya git" butonu |
+| `search (02)` Arama | Şehir seçici "+ Yeni rota oluştur" butonu |
+| `turkiyeRoute` Türkiye Turu | "Rezerve et" → nav('map') |
 | `ms (08)` Miles&Smiles | İlgili şehrin M&S pinleri haritadan çağrılır |
 
 ---
@@ -31,6 +33,7 @@ Seçilen destinasyona ait **şehir haritası**, **3 günlük plan** ve **Keşfet
 | M&S partner rezervasyon | `ms (08)` | `reserveMS()` → toast → 900ms sonra |
 | Seyahat Tercihleri badge | `travelPrefs (28)` | `thyHasPrefs()` true ise gösterilir |
 | Biniş kartını gör CTA | `boarding (05)` | Plan panelindeki CTA |
+| Şehir seçici → Yeni rota | `search (02)` | **YENİ (Mobil)** Bottom sheet "+Yeni rota oluştur" |
 
 ---
 
@@ -48,6 +51,31 @@ Seçilen destinasyona ait **şehir haritası**, **3 günlük plan** ve **Keşfet
 | `sendOpen` | `boolean` | Co-Pilot'a gönder menüsü açık mı |
 | `msMapActive` | `boolean` | M&S pinlerini haritada göster/gizle |
 | `msOnly` | `boolean` | Sadece M&S pinlerini göster filtresi |
+| `cityPickerOpen` | `boolean` | **YENİ (Mobil)** — Şehir seçici bottom sheet açık mı |
+
+---
+
+## Şehir Seçici (Mobil — YENİ)
+
+**Tetikleyici:** Header'daki `{toC.code} ▾` badge veya şehir adı — her zaman tıklanabilir.
+
+**`QUICK_DESTS` dizisi (16 şehir):**
+
+| Bölge | Şehirler |
+|---|---|
+| Avrupa | Roma (FCO) · Paris (CDG) · Londra (LHR) · Berlin (BER) · Amsterdam (AMS) · Atina (ATH) |
+| Orta Doğu | Dubai (DXB) |
+| Amerika | New York (JFK) |
+| Asya | Bangkok (BKK) |
+| Türkiye | İstanbul (IST) · Şanlıurfa (GNY) · Nevşehir (NAV) · Antalya (AYT) · İzmir (ADB) · Trabzon (TZX) · Rize (RZE) |
+
+**Akış:**
+1. `setCityPickerOpen(true)` → bottom sheet açılır
+2. Şehir seçilince `setBooking({ toCode: code })` → harita + rehber aninda güncellenir
+3. Toast: "🇮🇹 Roma seçildi"
+4. Alt buton: "+ Yeni rota oluştur →" → `nav('search')`
+
+**İpucu:** Aktif şehir badge'i kırmızı + ✓ SEÇİLİ ile vurgulanır.
 
 ---
 

@@ -1,28 +1,225 @@
 // web-screens-d.jsx — PriceAlert, AirportPicker, TurkiyeTuru, TurkiyeRoute, CheckIn
 
 // 16 ─── PRICE ALERT — Bloomberg terminal, full-width ──────────
+// ─── Elegant gold slider — drag the thumb to set target ─────────
+function WebElegantSlider({ min, max, step = 100, value, onChange }) {
+  const railRef = React.useRef(null);
+  const [dragging, setDragging] = React.useState(false);
+  const pct = Math.max(0, Math.min(100, ((value - min) / (max - min)) * 100));
+  const updateFromX = (clientX) => {
+    const rail = railRef.current; if (!rail) return;
+    const rect = rail.getBoundingClientRect();
+    const ratio = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+    const raw = min + ratio * (max - min);
+    const snapped = Math.round(raw / step) * step;
+    onChange(Math.max(min, Math.min(max, snapped)));
+  };
+  React.useEffect(() => {
+    if (!dragging) return;
+    const move = (e) => updateFromX(e.clientX);
+    const up = () => setDragging(false);
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', up);
+    return () => { window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); };
+  }, [dragging]);
+  return (
+    <div ref={railRef}
+      onPointerDown={(e) => { setDragging(true); updateFromX(e.clientX); }}
+      style={{ position: 'relative', height: 52, cursor: 'pointer', userSelect: 'none',
+        padding: '22px 0', touchAction: 'none' }}>
+      {/* Rail bg */}
+      <div style={{ position: 'absolute', left: 0, right: 0, top: 22, height: 8, borderRadius: 999,
+        background: 'rgba(255,255,255,0.06)',
+        border: '1px solid rgba(197,160,89,0.18)',
+        boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.5)' }} />
+      {/* Filled */}
+      <div style={{ position: 'absolute', left: 0, top: 22, height: 8, width: `${pct}%`, borderRadius: 999,
+        background: 'linear-gradient(90deg, #B7312C 0%, #C5A059 55%, #E5C97A 100%)',
+        boxShadow: '0 0 16px rgba(197,160,89,0.45)' }} />
+      {/* Tick marks */}
+      {[0, 25, 50, 75, 100].map(p => (
+        <div key={p} style={{
+          position: 'absolute', left: `calc(${p}% - 0.5px)`, top: 18, width: 1, height: 16,
+          background: p <= pct ? 'rgba(229,201,122,0.55)' : 'rgba(255,255,255,0.10)',
+        }} />
+      ))}
+      {/* Thumb */}
+      <div style={{
+        position: 'absolute', left: `calc(${pct}% - 14px)`, top: 12,
+        width: 28, height: 28, borderRadius: '50%',
+        background: 'radial-gradient(circle at 30% 30%, #FFF1C4 0%, #E5C97A 40%, #C5A059 70%, #9C7B36 100%)',
+        border: '2px solid #1A1206',
+        boxShadow: '0 4px 14px rgba(0,0,0,0.55), 0 0 24px rgba(197,160,89,0.55)',
+        cursor: dragging ? 'grabbing' : 'grab',
+        transition: dragging ? 'none' : 'transform 160ms cubic-bezier(.16,1,.3,1)',
+        transform: dragging ? 'scale(1.15)' : 'scale(1)',
+      }} />
+    </div>
+  );
+}
+
+// Format & breakdown helpers
+function fmtTL(n) { return Math.round(n).toLocaleString('tr-TR'); }
+function priceBreakdown(route) {
+  // "12 840,00" → 12840
+  const total = parseInt(String(route.price).replace(/[^\d]/g, ''), 10) / 100;
+  const isBiz = /business|prime/i.test(route.cabin || '');
+  const flightRatio = isBiz ? 0.73 : 0.62;
+  const hotelRatio  = isBiz ? 0.22 : 0.31;
+  const vipRatio    = 1 - flightRatio - hotelRatio;
+  return {
+    total,
+    flight: Math.round(total * flightRatio),
+    hotel:  Math.round(total * hotelRatio),
+    vip:    Math.round(total * vipRatio),
+  };
+}
+
+function WebActiveAlarmsList({ lang, nav }) {
+  const [alarms, setAlarms] = React.useState(() => {
+    try { return JSON.parse(localStorage.getItem('thy-route-alarms-v1') || '[]'); }
+    catch (_) { return []; }
+  });
+  const removeAlarm = (idx) => {
+    const next = alarms.filter((_, i) => i !== idx);
+    setAlarms(next);
+    try { localStorage.setItem('thy-route-alarms-v1', JSON.stringify(next)); } catch (_) {}
+  };
+  if (!alarms.length) return null;
+  return (
+    <div style={{
+      background: 'linear-gradient(160deg, rgba(34,197,94,0.06) 0%, rgba(10,22,40,0.3) 60%)',
+      border: '1px solid rgba(34,197,94,0.28)',
+      borderRadius: 4, padding: '16px 22px', marginBottom: 20,
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+        <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#22C55E', boxShadow: '0 0 8px #22C55E' }} />
+        <span style={{ fontSize: 11, color: '#22C55E', letterSpacing: 1.8, fontWeight: 800 }}>
+          {lang === 'tr' ? `KURULU ALARMLAR · ${alarms.length}` : `ACTIVE ALERTS · ${alarms.length}`}
+        </span>
+        <span style={{ marginLeft: 'auto', fontSize: 10, color: '#5B8773', letterSpacing: 1.4 }}>
+          {lang === 'tr' ? 'FİYAT HEDEFİNİ TUTUNCA BİLDİRİLİR' : 'NOTIFIED WHEN TARGET HITS'}
+        </span>
+      </div>
+      <div style={{ display: 'grid', gap: 8 }}>
+        {alarms.map((a, i) => {
+          const setAt = new Date(a.setAt);
+          const dateStr = `${setAt.getDate().toString().padStart(2,'0')}.${(setAt.getMonth()+1).toString().padStart(2,'0')}.${setAt.getFullYear()}`;
+          return (
+            <div key={i} style={{
+              display: 'grid', gridTemplateColumns: '1.4fr 1fr 1fr 1fr auto', gap: 16, alignItems: 'center',
+              padding: '12px 16px', borderRadius: 3,
+              background: 'rgba(255,255,255,0.025)',
+              border: '1px solid rgba(34,197,94,0.18)',
+            }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                <span style={{ fontSize: 13, color: '#E5F3EA', fontWeight: 600 }}>
+                  {(a.legs || []).join(' → ')}
+                </span>
+                <span style={{ fontSize: 10.5, color: '#5B8773', letterSpacing: 0.6 }}>
+                  {a.routeName} · {dateStr}
+                </span>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                <span style={{ fontSize: 9.5, color: '#5B8773', letterSpacing: 1.4, fontWeight: 800 }}>
+                  {lang === 'tr' ? 'GÜNCEL' : 'CURRENT'}
+                </span>
+                <span style={{ fontSize: 14, color: '#E5F3EA' }}>
+                  {Math.round(a.currentTL).toLocaleString('tr-TR')} <span style={{ fontSize: 10, color: '#5B8773' }}>TL</span>
+                </span>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                <span style={{ fontSize: 9.5, color: '#C5A059', letterSpacing: 1.4, fontWeight: 800 }}>
+                  ✦ {lang === 'tr' ? 'HEDEF' : 'TARGET'}
+                </span>
+                <span style={{ fontSize: 14, color: '#E5C97A', fontWeight: 700 }}>
+                  {Math.round(a.targetTL).toLocaleString('tr-TR')} <span style={{ fontSize: 10, color: '#C5A059' }}>TL</span>
+                </span>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                <span style={{ fontSize: 9.5, color: '#5B8773', letterSpacing: 1.4, fontWeight: 800 }}>
+                  {lang === 'tr' ? 'TASARRUF' : 'SAVINGS'}
+                </span>
+                <span style={{ fontSize: 14, color: '#22C55E', fontWeight: 700 }}>
+                  −{Math.round(a.savingsTL || 0).toLocaleString('tr-TR')} <span style={{ fontSize: 10, color: '#5B8773' }}>TL</span>
+                </span>
+              </div>
+              <button onClick={() => removeAlarm(i)} title={lang === 'tr' ? 'Alarmı kaldır' : 'Remove alert'} style={{
+                width: 32, height: 32, borderRadius: 3, cursor: 'pointer',
+                background: 'transparent', border: '1px solid rgba(239,111,102,0.32)',
+                color: '#EF6F66', fontSize: 14, display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+              }}>×</button>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 function WebPriceAlertScreen({ t, nav }) {
   const u = useThyTweaks(t, { dark: true });
   const toast = useToast();
-  const [target, setTarget] = React.useState(4500);
-  const data = React.useMemo(() => {
-    const out = []; let v = 5640;
-    for (let i = 0; i < 30; i++) {
-      v += (Math.sin(i * 0.6) * 120) + ((i % 5 === 0) ? -180 : 60);
-      out.push(Math.max(3900, Math.min(6800, Math.round(v))));
-    }
-    return out;
+
+  // Route mode — saved-route alarm; null = default ticker (IST·FCO)
+  const routeData = React.useMemo(() => {
+    try {
+      const raw = localStorage.getItem('thy-route-alarm-target-v1');
+      return raw ? JSON.parse(raw) : null;
+    } catch (_) { return null; }
   }, []);
-  const min = Math.min(...data), max = Math.max(...data);
+  const routeMode = !!routeData;
+  const breakdown = routeMode ? priceBreakdown(routeData) : null;
+  const totalTL = breakdown ? breakdown.total : 5640;
+
+  // Slider range adapts to total
+  const sliderMin = routeMode ? Math.round(totalTL * 0.70 / 500) * 500 : 3900;
+  const sliderMax = routeMode ? Math.round(totalTL * 1.05 / 500) * 500 : 6800;
+  const sliderStep = routeMode ? (totalTL > 50000 ? 500 : totalTL > 10000 ? 100 : 50) : 50;
+  const initialTarget = routeMode
+    ? Math.round((totalTL * 0.88) / sliderStep) * sliderStep
+    : 4500;
+  const [target, setTarget] = React.useState(initialTarget);
+
+  const data = React.useMemo(() => {
+    if (!routeMode) {
+      const out = []; let v = 5640;
+      for (let i = 0; i < 30; i++) {
+        v += (Math.sin(i * 0.6) * 120) + ((i % 5 === 0) ? -180 : 60);
+        out.push(Math.max(3900, Math.min(6800, Math.round(v))));
+      }
+      return out;
+    }
+    const out = []; const base = totalTL;
+    for (let i = 0; i < 30; i++) {
+      const noise = Math.sin(i * 0.6) * (base * 0.06)
+                  + Math.cos(i * 0.31) * (base * 0.035)
+                  + ((i % 5 === 0) ? -base * 0.03 : base * 0.012);
+      out.push(Math.round(Math.max(base * 0.78, Math.min(base * 1.12, base + noise))));
+    }
+    // Force the last point to be the actual total so "current" matches breakdown
+    out[out.length - 1] = base;
+    return out;
+  }, [routeMode, totalTL]);
+
+  const cMin = Math.min(...data), cMax = Math.max(...data);
   const cur = data[data.length - 1];
   const delta = cur - data[0];
-  const W = 1200, H = 320;
+  const W = 1200, H = 280;
   const points = data.map((v, i) => {
     const x = (i / (data.length - 1)) * W;
-    const y = H - ((v - min) / (max - min)) * H;
+    const y = H - ((v - cMin) / (cMax - cMin || 1)) * H;
     return `${x.toFixed(1)},${y.toFixed(1)}`;
   }).join(' ');
-  const targetY = H - ((target - min) / (max - min)) * H;
+  const targetClamped = Math.max(cMin, Math.min(cMax, target));
+  const targetY = H - ((targetClamped - cMin) / (cMax - cMin || 1)) * H;
+
+  const legsLabel = routeMode ? (routeData.legs || []).join('·') : 'IST·FCO';
+  const subLabel  = routeMode
+    ? `${routeData.dates || ''} · ${routeData.cabin || ''} · ${routeData.pax || ''}`
+    : (u.lang === 'tr' ? '30G · ORTA · Ekonomi' : '30D · MID · Economy');
+  const savingsAbs = Math.max(0, cur - target);
+  const savingsPct = cur > 0 ? ((1 - target / cur) * 100) : 0;
 
   return (
     <PageShell dark style={{ background: '#08120D', fontFamily: "'DM Mono', monospace", color: '#E5F3EA' }}>
@@ -30,11 +227,13 @@ function WebPriceAlertScreen({ t, nav }) {
       {/* Terminal header */}
       <div style={{ padding: '20px 32px', background: '#0B1A14', borderBottom: '1px solid #1A3326',
         display: 'flex', alignItems: 'center', gap: 14 }}>
-        <button onClick={() => nav('search')} style={{
+        <button onClick={() => nav(routeMode ? 'routes' : 'search')} style={{
           background: '#1A3326', border: '1px solid #2A4D3A', color: '#E5F3EA',
           padding: '7px 12px', borderRadius: 2, cursor: 'pointer', fontFamily: 'inherit', fontSize: 12,
-        }}>← BACK</button>
-        <span style={{ fontSize: 11, color: '#5B8773', letterSpacing: 1.5 }}>TERM·16 / PRICE ALERT</span>
+        }}>← {routeMode ? (u.lang === 'tr' ? 'ROTALARIM' : 'ROUTES') : 'BACK'}</button>
+        <span style={{ fontSize: 11, color: '#5B8773', letterSpacing: 1.5 }}>
+          TERM·16 / {routeMode ? `ROUTE ALERT · ${routeData.id}` : 'PRICE ALERT'}
+        </span>
         <span style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 8 }}>
           <span style={{ width: 9, height: 9, borderRadius: '50%', background: '#22C55E', boxShadow: '0 0 8px #22C55E' }} />
           <span style={{ fontSize: 11, color: '#22C55E' }}>LIVE · UTC 14:32:08</span>
@@ -42,16 +241,68 @@ function WebPriceAlertScreen({ t, nav }) {
       </div>
 
       <div style={{ maxWidth: 1440, margin: '0 auto', padding: '24px 32px' }}>
+        {/* Kurulu alarmlar listesi */}
+        <WebActiveAlarmsList lang={u.lang} nav={nav} />
+        {/* Route breakdown panel (route mode only) */}
+        {routeMode && (
+          <div style={{
+            background: 'linear-gradient(160deg, rgba(197,160,89,0.08) 0%, rgba(10,22,40,0.4) 60%)',
+            border: '1px solid rgba(197,160,89,0.32)',
+            borderRadius: 4, padding: '18px 22px', marginBottom: 20,
+            display: 'grid', gridTemplateColumns: '1.4fr auto auto auto auto', gap: 24, alignItems: 'center',
+          }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <span style={{ fontSize: 10, letterSpacing: 1.8, color: '#C5A059', fontWeight: 800 }}>
+                ✦ {u.lang === 'tr' ? 'KAYITLI ROTA · TOPLAM' : 'SAVED ROUTE · TOTAL'}
+              </span>
+              <span style={{
+                fontFamily: "'Playfair Display', serif", fontSize: 22, fontWeight: 700,
+                color: '#F4EBD9', letterSpacing: -0.3,
+              }}>{routeData.name}</span>
+              <span style={{ fontSize: 11, color: '#5B8773' }}>{legsLabel} · {subLabel}</span>
+            </div>
+            {[
+              { l: u.lang === 'tr' ? 'UÇUŞ' : 'FLIGHT',   v: breakdown.flight, icon: '✈' },
+              { l: u.lang === 'tr' ? 'OTEL'  : 'HOTEL',    v: breakdown.hotel,  icon: '🏨' },
+              { l: u.lang === 'tr' ? 'VIP TRANSFER' : 'VIP TRANSFER', v: breakdown.vip, icon: '🚘' },
+            ].filter(x => x.v > 0).map(item => (
+              <div key={item.l} style={{ display: 'flex', flexDirection: 'column', gap: 4, textAlign: 'right' }}>
+                <span style={{ fontSize: 9.5, letterSpacing: 1.6, color: '#5B8773', fontWeight: 800 }}>
+                  {item.icon} {item.l}
+                </span>
+                <span style={{ fontSize: 17, color: '#E5F3EA', fontWeight: 600 }}>
+                  {fmtTL(item.v)} <span style={{ fontSize: 11, color: '#5B8773' }}>TL</span>
+                </span>
+              </div>
+            ))}
+            <div style={{
+              display: 'flex', flexDirection: 'column', gap: 4, textAlign: 'right',
+              paddingLeft: 18, borderLeft: '1px solid rgba(197,160,89,0.32)',
+            }}>
+              <span style={{ fontSize: 9.5, letterSpacing: 1.6, color: '#C5A059', fontWeight: 800 }}>
+                = TOPLAM
+              </span>
+              <span style={{
+                fontSize: 24, color: '#E5C97A', fontWeight: 700, letterSpacing: -0.5,
+              }}>
+                {fmtTL(breakdown.total)} <span style={{ fontSize: 12, color: '#C5A059' }}>TL</span>
+              </span>
+            </div>
+          </div>
+        )}
+
         {/* Ticker */}
         <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 8 }}>
           <div>
-            <span style={{ fontSize: 16, color: '#5B8773' }}>IST·FCO</span>
-            <span style={{ fontSize: 12, color: '#5B8773', marginLeft: 16 }}>30D · MID · EconomyClass</span>
+            <span style={{ fontSize: 16, color: '#5B8773' }}>{legsLabel}</span>
+            <span style={{ fontSize: 12, color: '#5B8773', marginLeft: 16 }}>{subLabel}</span>
           </div>
-          <span style={{ fontSize: 11, color: '#5B8773' }}>VOL 2.3K · BID/ASK 4.890/6.120</span>
+          <span style={{ fontSize: 11, color: '#5B8773' }}>
+            {u.lang === 'tr' ? 'SON 30G FİYAT HAREKETİ' : 'LAST 30D PRICE MOVEMENT'}
+          </span>
         </div>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, marginBottom: 20 }}>
-          <span style={{ fontSize: 72, fontWeight: 500, letterSpacing: -2, color: '#fff' }}>
+          <span style={{ fontSize: 64, fontWeight: 500, letterSpacing: -2, color: '#fff' }}>
             {cur.toLocaleString('tr-TR')}
           </span>
           <span style={{ fontSize: 18, color: '#5B8773' }}>TL</span>
@@ -60,7 +311,7 @@ function WebPriceAlertScreen({ t, nav }) {
             background: delta >= 0 ? 'rgba(239,46,31,0.15)' : 'rgba(34,197,94,0.15)',
             color:      delta >= 0 ? '#EF6F66' : '#22C55E',
             borderRadius: 2, fontSize: 14, fontWeight: 600,
-          }}>{delta >= 0 ? '▲' : '▼'} {Math.abs(delta).toLocaleString('tr-TR')} ({(delta/data[0]*100).toFixed(2)}%)</span>
+          }}>{delta >= 0 ? '▲' : '▼'} {Math.abs(delta).toLocaleString('tr-TR')} ({(delta/(data[0]||1)*100).toFixed(2)}%)</span>
         </div>
 
         {/* Chart */}
@@ -78,11 +329,13 @@ function WebPriceAlertScreen({ t, nav }) {
               </linearGradient>
             </defs>
             <line x1="0" x2={W} y1={targetY} y2={targetY} stroke="#C5A059" strokeWidth="1.5" strokeDasharray="6 4" />
-            <rect x={W - 90} y={targetY - 14} width="90" height="22" fill="#C5A059" />
-            <text x={W - 45} y={targetY + 1} fill="#0A1628" fontSize="13" textAnchor="middle" fontWeight="700">TARGET</text>
+            <rect x={W - 110} y={targetY - 14} width="110" height="22" fill="#C5A059" />
+            <text x={W - 55} y={targetY + 1} fill="#0A1628" fontSize="13" textAnchor="middle" fontWeight="700">
+              {u.lang === 'tr' ? 'HEDEF' : 'TARGET'}
+            </text>
             <polyline points={points} fill="none" stroke="#22C55E" strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
-            <circle cx={W} cy={H - ((cur - min)/(max - min))*H} r="5" fill="#22C55E" />
-            <circle cx={W} cy={H - ((cur - min)/(max - min))*H} r="10" fill="#22C55E" opacity="0.25">
+            <circle cx={W} cy={H - ((cur - cMin)/(cMax - cMin || 1))*H} r="5" fill="#22C55E" />
+            <circle cx={W} cy={H - ((cur - cMin)/(cMax - cMin || 1))*H} r="10" fill="#22C55E" opacity="0.25">
               <animate attributeName="r" values="5;14;5" dur="2s" repeatCount="indefinite" />
             </circle>
           </svg>
@@ -91,36 +344,60 @@ function WebPriceAlertScreen({ t, nav }) {
         {/* Stats grid */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)',
           borderTop: '1px solid #1A3326', borderBottom: '1px solid #1A3326', margin: '8px 0' }}>
-          <TermStat label="LOW"   value={min.toLocaleString('tr-TR')} />
-          <TermStat label="HIGH"  value={max.toLocaleString('tr-TR')} />
-          <TermStat label="AVG"   value={Math.round(data.reduce((a,b) => a+b, 0)/data.length).toLocaleString('tr-TR')} />
-          <TermStat label="VOL"   value="2.3K" />
-          <TermStat label="VOLAT" value="14.2%" />
-          <TermStat label="TGT"   value={target.toLocaleString('tr-TR')} last />
+          <TermStat label={u.lang === 'tr' ? 'EN DÜŞÜK' : 'LOW'}   value={cMin.toLocaleString('tr-TR')} />
+          <TermStat label={u.lang === 'tr' ? 'EN YÜKSEK' : 'HIGH'} value={cMax.toLocaleString('tr-TR')} />
+          <TermStat label={u.lang === 'tr' ? 'ORTALAMA' : 'AVG'}   value={Math.round(data.reduce((a,b) => a+b, 0)/data.length).toLocaleString('tr-TR')} />
+          <TermStat label={u.lang === 'tr' ? 'GÜNCEL' : 'CUR'}      value={cur.toLocaleString('tr-TR')} />
+          <TermStat label={u.lang === 'tr' ? 'TASARRUF' : 'SAVE'}   value={savingsAbs > 0 ? '-' + fmtTL(savingsAbs) : '—'} />
+          <TermStat label={u.lang === 'tr' ? 'HEDEF' : 'TGT'}       value={target.toLocaleString('tr-TR')} last />
         </div>
 
         {/* Target slider + freq */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: 32, marginTop: 22 }}>
-          <div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: '#5B8773' }}>
-              <span>SET TARGET PRICE</span>
-              <span>RANGE 3 900 – 6 800 TL</span>
+        <div style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr', gap: 32, marginTop: 22 }}>
+          <div style={{
+            background: 'rgba(197,160,89,0.04)',
+            border: '1px solid rgba(197,160,89,0.20)',
+            borderRadius: 4, padding: '18px 22px',
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: '#C5A059', letterSpacing: 1.5, fontWeight: 800 }}>
+              <span>✦ {u.lang === 'tr' ? 'HEDEF FİYATI ÇUBUKLA AYARLA' : 'DRAG THE BAR TO SET TARGET'}</span>
+              <span style={{ color: '#5B8773' }}>
+                {u.lang === 'tr' ? 'ARALIK' : 'RANGE'} {fmtTL(sliderMin)} – {fmtTL(sliderMax)} TL
+              </span>
             </div>
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginTop: 8 }}>
-              <span style={{ fontSize: 48, color: '#C5A059', fontWeight: 500, letterSpacing: -1 }}>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginTop: 10 }}>
+              <span style={{
+                fontSize: 56, color: '#E5C97A', fontWeight: 600, letterSpacing: -1.5,
+                fontFamily: "'Playfair Display', serif",
+              }}>
                 {target.toLocaleString('tr-TR')}
               </span>
-              <span style={{ fontSize: 14, color: '#5B8773' }}>TL</span>
-              <span style={{ marginLeft: 'auto', fontSize: 12, color: '#5B8773' }}>
-                -{((1 - target/cur)*100).toFixed(1)}% {u.lang==='tr'?'altında uyar':'below alert'}
+              <span style={{ fontSize: 16, color: '#C5A059' }}>TL</span>
+              <span style={{ marginLeft: 'auto', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 2 }}>
+                <span style={{ fontSize: 11, color: '#5B8773', letterSpacing: 1.4 }}>
+                  {u.lang === 'tr' ? 'GÜNCELDEN' : 'FROM CURRENT'}
+                </span>
+                <span style={{ fontSize: 18, color: savingsAbs > 0 ? '#22C55E' : '#EF6F66', fontWeight: 700 }}>
+                  {savingsAbs > 0 ? '−' : '+'}{fmtTL(Math.abs(cur - target))} TL
+                  <span style={{ fontSize: 12, color: '#5B8773', marginLeft: 6 }}>
+                    ({savingsAbs > 0 ? '-' : '+'}{Math.abs(savingsPct).toFixed(1)}%)
+                  </span>
+                </span>
               </span>
             </div>
-            <input type="range" min={3900} max={6800} step={50}
-              value={target} onChange={(e) => setTarget(parseInt(e.target.value, 10))}
-              style={{ width: '100%', marginTop: 14, accentColor: '#C5A059' }} />
+            <WebElegantSlider
+              min={sliderMin} max={sliderMax} step={sliderStep}
+              value={target} onChange={setTarget}
+            />
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4, fontSize: 10, color: '#5B8773', letterSpacing: 1.2 }}>
+              <span>{fmtTL(sliderMin)} TL</span>
+              <span>{fmtTL(sliderMax)} TL</span>
+            </div>
           </div>
           <div>
-            <div style={{ fontSize: 11, color: '#5B8773', marginBottom: 8 }}>ALERT FREQUENCY</div>
+            <div style={{ fontSize: 11, color: '#5B8773', marginBottom: 8, letterSpacing: 1.5 }}>
+              {u.lang === 'tr' ? 'BİLDİRİM SIKLIĞI' : 'ALERT FREQUENCY'}
+            </div>
             <div style={{ display: 'flex', gap: 6 }}>
               {[
                 { id: 'inst', l: u.lang==='tr'?'Anında':'Instant',  on: true },
@@ -138,13 +415,41 @@ function WebPriceAlertScreen({ t, nav }) {
               ))}
             </div>
             <button onClick={() => {
-              toast({ type: 'success', icon: '🔔', children: u.lang==='tr'?`Alarm kuruldu · ${target.toLocaleString('tr-TR')} TL`:`Alert set · ${target.toLocaleString('tr-TR')} TL` });
-              setTimeout(() => nav('notifications'), 600);
+              try {
+                const list = JSON.parse(localStorage.getItem('thy-route-alarms-v1') || '[]');
+                const entry = {
+                  routeId: routeData?.id || null,
+                  routeName: routeData?.name || (u.lang === 'tr' ? 'IST → FCO' : 'IST → FCO'),
+                  legs: routeData?.legs || ['IST','FCO'],
+                  currentTL: cur, targetTL: target,
+                  savingsTL: Math.max(0, cur - target),
+                  setAt: new Date().toISOString(),
+                };
+                list.unshift(entry);
+                localStorage.setItem('thy-route-alarms-v1', JSON.stringify(list.slice(0, 50)));
+                localStorage.removeItem('thy-route-alarm-target-v1');
+              } catch (_) {}
+              toast({ type: 'success', icon: '🔔', children: u.lang==='tr'
+                ? `Alarm kuruldu · ${target.toLocaleString('tr-TR')} TL · tasarruf ${fmtTL(savingsAbs)} TL`
+                : `Alert set · ${target.toLocaleString('tr-TR')} TL · save ${fmtTL(savingsAbs)} TL` });
+              setTimeout(() => nav(routeMode ? 'routes' : 'notifications'), 700);
             }} style={{
               width: '100%', marginTop: 12, padding: '16px',
-              background: '#22C55E', color: '#08120D', border: 'none', borderRadius: 2,
-              fontFamily: 'inherit', fontWeight: 700, fontSize: 14, cursor: 'pointer', letterSpacing: 1.5,
-            }}>EXECUTE · SET ALERT →</button>
+              background: 'linear-gradient(135deg, #C5A059 0%, #E5C97A 100%)',
+              color: '#1A1206', border: 'none', borderRadius: 4,
+              fontFamily: 'inherit', fontWeight: 800, fontSize: 14, cursor: 'pointer', letterSpacing: 1.5,
+              boxShadow: '0 8px 22px rgba(197,160,89,0.45)',
+            }}>
+              ✦ {u.lang === 'tr' ? 'ALARMI KUR' : 'EXECUTE · SET ALERT'} →
+            </button>
+            <div style={{ marginTop: 14, padding: '10px 12px', borderRadius: 4,
+              background: 'rgba(34,197,94,0.06)', border: '1px solid rgba(34,197,94,0.18)',
+              fontSize: 11, color: '#5B8773', lineHeight: 1.5,
+            }}>
+              {u.lang === 'tr'
+                ? <>Fiyat <strong style={{ color: '#22C55E' }}>{target.toLocaleString('tr-TR')} TL</strong> veya altına düşerse bildirim alacaksın. Hedef güncelden <strong style={{ color: savingsAbs > 0 ? '#22C55E' : '#EF6F66' }}>{savingsAbs > 0 ? '-' : '+'}{Math.abs(savingsPct).toFixed(1)}%</strong>.</>
+                : <>You'll be notified when the price drops to <strong style={{ color: '#22C55E' }}>{target.toLocaleString('tr-TR')} TL</strong> or below. Target is <strong style={{ color: savingsAbs > 0 ? '#22C55E' : '#EF6F66' }}>{savingsAbs > 0 ? '-' : '+'}{Math.abs(savingsPct).toFixed(1)}%</strong> from current.</>}
+            </div>
           </div>
         </div>
       </div>
@@ -1028,13 +1333,13 @@ function WebCheckInScreen({ t, nav }) {
           <h1 style={{ marginTop: 40, textAlign: 'center',
             fontFamily: "'Playfair Display', serif", fontWeight: 500,
             fontSize: 44, letterSpacing: -0.5, lineHeight: 1.15, color: '#0A0A0A', maxWidth: 540 }}>
-            {stage === 'intro' && (u.lang==='tr'?'Pasaportunuzu telefona yaklaştırın.':'Tap your passport to your phone.')}
+            {stage === 'intro' && (u.lang==='tr'?'Biniş kartınızın QR kodunu okutun.':'Scan your boarding pass QR code.')}
             {stage === 'scan'  && (u.lang==='tr'?'Okunuyor…':'Reading…')}
             {stage === 'done'  && (u.lang==='tr'?'Hoş geldiniz, Aylin.':'Welcome aboard, Aylin.')}
           </h1>
           <p style={{ marginTop: 14, textAlign: 'center',
             fontSize: 14, color: '#737373', maxWidth: 420, fontStyle: 'italic' }}>
-            {stage === 'intro' && (u.lang==='tr'?'NFC çipi otomatik okuyacak. Bilgileriniz cihazınızdan çıkmaz.':'NFC chip will be read automatically. No data leaves your device.')}
+            {stage === 'intro' && (u.lang==='tr'?'Kameranızı QR koda doğrultun. Biniş bilgileriniz otomatik okunur.':'Point your camera at the QR code. Boarding details will be read automatically.')}
             {stage === 'scan'  && (u.lang==='tr'?'Lütfen sabit tutun. Bu işlem ~3 saniye sürer.':'Please hold steady. About 3 seconds.')}
             {stage === 'done'  && (u.lang==='tr'?'14F sizin · biniş 13:55 · kapı A12':'Seat 14F · boarding 13:55 · gate A12')}
           </p>

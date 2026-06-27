@@ -101,6 +101,10 @@ function WebSavedRoutesScreen({ t, setTweak, nav }) {
     try { localStorage.setItem('thy-route-pay-target-v1', JSON.stringify(route)); } catch (_) {}
     nav('payment');
   };
+  const setAlarm = (route) => {
+    try { localStorage.setItem('thy-route-alarm-target-v1', JSON.stringify(route)); } catch (_) {}
+    nav('priceAlert');
+  };
 
   return (
     <PageShell dark style={{
@@ -224,6 +228,19 @@ function WebSavedRoutesScreen({ t, setTweak, nav }) {
                 </div>
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6, minWidth: 160 }}>
+                  <button onClick={() => setAlarm(r)} title={u.lang === 'tr' ? 'Fiyat alarmı kur' : 'Set price alert'} style={{
+                    padding: '9px 12px', borderRadius: 8, cursor: 'pointer',
+                    background: 'linear-gradient(135deg, rgba(197,160,89,0.16), rgba(197,160,89,0.05))',
+                    border: '1px solid rgba(197,160,89,0.42)',
+                    color: '#E5C97A', fontSize: 11.5, fontWeight: 800,
+                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                    letterSpacing: 0.3, transition: 'all 200ms cubic-bezier(.16,1,.3,1)',
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.background = 'linear-gradient(135deg, rgba(197,160,89,0.28), rgba(197,160,89,0.10))'; e.currentTarget.style.boxShadow = '0 0 18px rgba(197,160,89,0.32)'; }}
+                  onMouseLeave={e => { e.currentTarget.style.background = 'linear-gradient(135deg, rgba(197,160,89,0.16), rgba(197,160,89,0.05))'; e.currentTarget.style.boxShadow = 'none'; }}>
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10 21a2 2 0 0 0 4 0"/></svg>
+                    {u.lang === 'tr' ? 'Fiyat alarmı' : 'Price alert'}
+                  </button>
                   <button onClick={() => nav('map')} style={{
                     padding: '11px 14px', borderRadius: 10, cursor: 'pointer',
                     background: 'rgba(197,160,89,0.10)',
