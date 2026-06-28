@@ -26,11 +26,13 @@ function WebMapScreen({ t, nav }) {
   const reserveMS = (partner) => {
     if (!partner) return;
     const verb = {
-      stay:    u.lang === 'tr' ? 'otel'     : 'hotel',
-      car:     u.lang === 'tr' ? 'araç'     : 'car',
-      finance: u.lang === 'tr' ? 'kart'     : 'card',
-      vip:     u.lang === 'tr' ? 'transfer' : 'transfer',
-      dining:  u.lang === 'tr' ? 'masa'     : 'table',
+      stay:            u.lang === 'tr' ? 'otel'     : 'hotel',
+      car:             u.lang === 'tr' ? 'araç'     : 'car',
+      vip:             u.lang === 'tr' ? 'transfer' : 'transfer',
+      lounge:          u.lang === 'tr' ? 'lounge'   : 'lounge',
+      travel_services: u.lang === 'tr' ? 'hizmet'   : 'service',
+      finance:         u.lang === 'tr' ? 'kart'     : 'card',
+      dining:          u.lang === 'tr' ? 'masa'     : 'table',
     }[partner.cat] || (u.lang === 'tr' ? 'rezervasyon' : 'reservation');
     toast && toast({ type: 'success', icon: '✦', children: u.lang === 'tr'
       ? `M&S üzerinden ${partner.brand} ${verb} rezervasyonuna yönlendiriliyorsun…`
@@ -1510,17 +1512,36 @@ function WebMilesScreen({ t, nav }) {
           <ThyChip active={cat==='all'}    onClick={() => setCat('all')}>{u.lang==='tr'?'Tümü':'All'}</ThyChip>
           <ThyChip active={cat==='hotel'}  onClick={() => setCat('hotel')} icon={<Icon name="bed" size={12} />}>{u.lang==='tr'?'Konaklama':'Hotels'}</ThyChip>
           <ThyChip active={cat==='car'}    onClick={() => setCat('car')} icon={<Icon name="car" size={12} />}>{u.lang==='tr'?'Araç':'Cars'}</ThyChip>
+          <ThyChip active={cat==='vip'}    onClick={() => setCat('vip')} icon={<Icon name="shield" size={12} />}>{u.lang==='tr'?'VIP Transfer':'VIP'}</ThyChip>
+          <ThyChip active={cat==='lounge'} onClick={() => setCat('lounge')} icon={<Icon name="coffee" size={12} />}>{u.lang==='tr'?'Lounge':'Lounge'}</ThyChip>
+          <ThyChip active={cat==='wifi'}   onClick={() => setCat('wifi')} icon={<Icon name="wifi" size={12} />}>{u.lang==='tr'?'Hizmetler':'Services'}</ThyChip>
           <ThyChip active={cat==='bank'}   onClick={() => setCat('bank')} icon={<Icon name="cardIcon" size={12} />}>{u.lang==='tr'?'Banka':'Bank'}</ThyChip>
           <ThyChip active={cat==='dining'} onClick={() => setCat('dining')} icon={<Icon name="coffee" size={12} />}>{u.lang==='tr'?'Yeme':'Dining'}</ThyChip>
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12 }}>
-          <PartnerItem name="Hilton" offer={u.lang==='tr'?'Konaklama başına 500 Mil':'500 mi per stay'} icon={<Icon name="bed" size={16} />} actionLabel={u.lang==='tr'?'Haritada Bul':'Find'} />
-          <PartnerItem name="Avis" offer={u.lang==='tr'?'Kiralama başına min. 125 Mil':'min. 125 mi per rental'} icon={<Icon name="car" size={16} />} actionLabel={u.lang==='tr'?'Haritada Bul':'Find'} />
-          <PartnerItem name="Garanti BBVA" offer={u.lang==='tr'?'Her 5 TL\'ye 1 Mil':'1 mi per 5 TL'} icon={<Icon name="cardIcon" size={16} />} actionLabel={u.lang==='tr'?'Aktifleştir':'Activate'} />
-          <PartnerItem name="Starbucks" offer={u.lang==='tr'?'Sipariş başına 25 Mil':'25 mi per order'} icon={<Icon name="coffee" size={16} />} actionLabel={u.lang==='tr'?'Aktifleştir':'Activate'} />
-          <PartnerItem name="Booking" offer={u.lang==='tr'?'Konaklama başına %5 mil iadesi':'5% miles back per stay'} icon={<Icon name="bed" size={16} />} actionLabel={u.lang==='tr'?'Aktifleştir':'Activate'} />
-          <PartnerItem name="Marriott" offer={u.lang==='tr'?'Bonus 1.000 Mil':'1,000 bonus mi'} icon={<Icon name="bed" size={16} />} actionLabel={u.lang==='tr'?'Haritada Bul':'Find'} />
+          {/* ─── Konaklama ─── */}
+          <PartnerItem name="Marriott Bonvoy"      offer={u.lang==='tr'?'Konaklama başına 600 Mil':'600 mi per stay'}        icon={<Icon name="bed" size={16} />}      actionLabel={u.lang==='tr'?'Haritada Bul':'Find'} />
+          <PartnerItem name="Hilton Honors"        offer={u.lang==='tr'?'Konaklama başına 500 Mil':'500 mi per stay'}        icon={<Icon name="bed" size={16} />}      actionLabel={u.lang==='tr'?'Haritada Bul':'Find'} />
+          <PartnerItem name="ALL · Accor"          offer={u.lang==='tr'?'%15 + 550 Mil/gece':'15% + 550 mi/night'}            icon={<Icon name="bed" size={16} />}      actionLabel={u.lang==='tr'?'Aktifleştir':'Activate'} />
+          <PartnerItem name="Rixos Hotels"         offer={u.lang==='tr'?'Konaklama başına 700 Mil':'700 mi per stay'}        icon={<Icon name="bed" size={16} />}      actionLabel={u.lang==='tr'?'Haritada Bul':'Find'} />
+          <PartnerItem name="IHG One Rewards"      offer={u.lang==='tr'?'Konaklama başına 650 Mil':'650 mi per stay'}        icon={<Icon name="bed" size={16} />}      actionLabel={u.lang==='tr'?'Aktifleştir':'Activate'} />
+          <PartnerItem name="Booking.com"          offer={u.lang==='tr'?'Konaklama başına %5 mil iadesi':'5% miles back'}    icon={<Icon name="bed" size={16} />}      actionLabel={u.lang==='tr'?'Aktifleştir':'Activate'} />
+          <PartnerItem name="Rocketmiles"          offer={u.lang==='tr'?'Rezervasyon başına 1.500 Mil':'1,500 mi per booking'} icon={<Icon name="bed" size={16} />}    actionLabel={u.lang==='tr'?'Aktifleştir':'Activate'} />
+          <PartnerItem name="HalalBooking"         offer={u.lang==='tr'?'Rezervasyon başına 700 Mil':'700 mi per booking'}  icon={<Icon name="bed" size={16} />}      actionLabel={u.lang==='tr'?'Aktifleştir':'Activate'} />
+          <PartnerItem name="Kaligo"               offer={u.lang==='tr'?'Rezervasyon başına 1.800 Mil':'1,800 mi per booking'} icon={<Icon name="bed" size={16} />}    actionLabel={u.lang==='tr'?'Aktifleştir':'Activate'} />
+          {/* ─── Araç Kiralama ─── */}
+          <PartnerItem name="Avis"                 offer={u.lang==='tr'?'Kiralama başına min. 125 Mil':'min. 125 mi per rental'} icon={<Icon name="car" size={16} />} actionLabel={u.lang==='tr'?'Haritada Bul':'Find'} />
+          <PartnerItem name="Budget"               offer={u.lang==='tr'?'Kiralama başına min. 110 Mil':'min. 110 mi per rental'} icon={<Icon name="car" size={16} />} actionLabel={u.lang==='tr'?'Aktifleştir':'Activate'} />
+          <PartnerItem name="Enterprise"           offer={u.lang==='tr'?'Kiralama başına min. 130 Mil':'min. 130 mi per rental'} icon={<Icon name="car" size={16} />} actionLabel={u.lang==='tr'?'Aktifleştir':'Activate'} />
+          <PartnerItem name="Sixt"                 offer={u.lang==='tr'?'Kiralama başına min. 140 Mil':'min. 140 mi per rental'} icon={<Icon name="car" size={16} />} actionLabel={u.lang==='tr'?'Haritada Bul':'Find'} />
+          {/* ─── VIP Transfer / Lounge / Hizmetler ─── */}
+          <PartnerItem name="ProGo VIP Transfer"   offer={u.lang==='tr'?'Tek yön 950 Mil':'950 mi per one-way'}              icon={<Icon name="shield" size={16} />}   actionLabel={u.lang==='tr'?'Haritada Bul':'Find'} />
+          <PartnerItem name="Plaza Premium Lounge" offer={u.lang==='tr'?'Lounge başına 400 Mil':'400 mi per lounge'}        icon={<Icon name="coffee" size={16} />}   actionLabel={u.lang==='tr'?'Haritada Bul':'Find'} />
+          <PartnerItem name="Airport WiFi Rentals" offer={u.lang==='tr'?'Kiralama başına 100 Mil':'100 mi per rental'}      icon={<Icon name="wifi" size={16} />}     actionLabel={u.lang==='tr'?'Aktifleştir':'Activate'} />
+          {/* ─── Finans / Dining ─── */}
+          <PartnerItem name="Garanti BBVA"         offer={u.lang==='tr'?'Her 5 TL\'ye 1 Mil':'1 mi per 5 TL'}                icon={<Icon name="cardIcon" size={16} />} actionLabel={u.lang==='tr'?'Aktifleştir':'Activate'} />
+          <PartnerItem name="Divan Brasserie"      offer={u.lang==='tr'?'%10 + 200 Mil/menü':'10% + 200 mi/menu'}            icon={<Icon name="coffee" size={16} />}   actionLabel={u.lang==='tr'?'Haritada Bul':'Find'} />
         </div>
       </div>
       <div style={{ height: 60 }} />
