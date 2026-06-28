@@ -1066,6 +1066,9 @@ function WebTurkiyeRouteScreen({ t, nav }) {
       tripType: 'round',
       tourId:   tour.id,
       tourTitle: tour.title[isTR ? 'tr' : 'en'],
+      tourStops: sel.stops,
+      tourColor: tour.color,
+      tourRoute: tour.route,
     });
   };
 

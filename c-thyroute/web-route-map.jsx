@@ -23,6 +23,21 @@ const CITY_CENTERS = {
   MAD: { lat: 40.4168, lon: -3.7038, zoom: 13 }, // Madrid
   IST: { lat: 41.0082, lon: 28.9784, zoom: 12 }, // Istanbul
   SAW: { lat: 40.9923, lon: 29.0244, zoom: 11 }, // Istanbul (Asian)
+  AYT: { lat: 36.8969, lon: 30.7133, zoom: 12 }, // Antalya
+  ADB: { lat: 38.4192, lon: 27.1287, zoom: 12 }, // Izmir
+  NAV: { lat: 38.6431, lon: 34.8289, zoom: 11 }, // Nevsehir / Cappadocia
+  ASR: { lat: 38.7312, lon: 35.4787, zoom: 12 }, // Kayseri
+  GZT: { lat: 37.0662, lon: 37.3833, zoom: 12 }, // Gaziantep
+  GNY: { lat: 37.1674, lon: 38.7955, zoom: 12 }, // Sanliurfa
+  MQM: { lat: 37.3212, lon: 40.7245, zoom: 12 }, // Mardin
+  ADF: { lat: 37.7648, lon: 38.2786, zoom: 11 }, // Adiyaman
+  TZX: { lat: 41.0027, lon: 39.7168, zoom: 12 }, // Trabzon
+  RZE: { lat: 41.0201, lon: 40.5234, zoom: 11 }, // Rize
+  DLM: { lat: 36.6515, lon: 29.1225, zoom: 12 }, // Fethiye / Dalaman
+  BJV: { lat: 39.1217, lon: 27.1820, zoom: 12 }, // Bergama / Bodrum
+  DNZ: { lat: 37.7765, lon: 29.0864, zoom: 12 }, // Denizli / Pamukkale
+  CKL: { lat: 40.1553, lon: 26.4142, zoom: 11 }, // Canakkale
+  KZR: { lat: 36.1997, lon: 29.6354, zoom: 13 }, // Kas
 };
 function cityCenterFor(code) {
   return CITY_CENTERS[code] || { lat: 41.0082, lon: 28.9784, zoom: 12 };

@@ -6,6 +6,10 @@
 function WebMapScreen({ t, nav }) {
   const u = useThyTweaks(t, { dark: true });
   const [booking, setBooking, h] = useBooking();
+  // Tour mode: delegate to WebTourMapScreen
+  if (booking.tourId && booking.tourStops && booking.tourStops.length > 0) {
+    return React.createElement(WebTourMapScreen, { t: t, nav: nav, booking: booking });
+  }
   const dest = getDestination(booking.toCode || 'FCO');
   const fromC = h.from || findCity('IST');
   const toC = h.to || findCity(booking.toCode || 'FCO');
@@ -1925,6 +1929,763 @@ function PayRow({ brand, last, name }) {
   );
 }
 
+// ── TR Airport map + transport logic ──────────────────────────────
+var TR_AIRPORTS = {
+  IST: 'Istanbul Havalimani', SAW: 'Sabiha Gokcen', ESB: 'Esenboga', AYT: 'Antalya',
+  ADB: 'Adnan Menderes', GZT: 'Oguzeli', TZX: 'Trabzon', DLM: 'Dalaman',
+  BJV: 'Milas-Bodrum', NAV: 'Nevsehir Kapadokya', ASR: 'Erkilet', GNY: 'Sanliurfa GAP',
+  MQM: 'Mardin', ADF: 'Adiyaman', RZE: 'Rize-Artvin', CKL: 'Canakkale', DNZ: 'Cardak',
+};
+function trHasAirport(code) { return !!TR_AIRPORTS[code]; }
+var TR_DISTANCES = {
+  'AYT-KZR': { km: 190, hr: '3s 30dk' }, 'KZR-DLM': { km: 150, hr: '2s 45dk' },
+  'GZT-GNY': { km: 180, hr: '2s 30dk' }, 'GNY-MQM': { km: 190, hr: '2s 45dk' },
+  'GZT-ADF': { km: 210, hr: '3s' }, 'IST-CKL': { km: 330, hr: '4s 30dk' },
+  'CKL-CKL': { km: 30, hr: '30dk' }, 'NAV-ASR': { km: 75, hr: '1s' },
+  'ADB-BJV': { km: 230, hr: '3s' }, 'BJV-DNZ': { km: 200, hr: '3s' },
+  'DNZ-ADB': { km: 250, hr: '3s 30dk' }, 'TZX-RZE': { km: 75, hr: '1s 15dk' },
+};
+function trGetTransport(from, to) {
+  if (from === to) return null;
+  if (trHasAirport(from) && trHasAirport(to)) {
+    var seed = (from + to).split('').reduce(function(s, c) { return s + c.charCodeAt(0); }, 0);
+    return {
+      type: 'flight', code: 'AJ ' + (1000 + (seed * 7 + 13) % 900),
+      plane: ['A320', 'A321neo', 'B737-800', 'A320neo'][seed % 4],
+      duration: (55 + (seed * 7) % 45) + 'dk',
+    };
+  }
+  var key1 = from + '-' + to, key2 = to + '-' + from;
+  var dist = TR_DISTANCES[key1] || TR_DISTANCES[key2] || { km: 200, hr: '3s' };
+  return { type: 'transfer', distance: dist.km + ' km', duration: dist.hr, note: 'VIP Transfer' };
+}
+
+// ── Tour Day-by-Day Itinerary Builder ───────────────────────────
+var TOUR_ACTIVITIES = {
+  IST: {
+    tr: [
+      { time: '09:00', title: 'Topkapi Sarayi', desc: 'Osmanli imparatorluk sarayi, Harem bolumu' },
+      { time: '11:30', title: 'Ayasofya Camii', desc: 'Bizans ve Osmanli mimarisinin saheseri' },
+      { time: '13:00', title: 'Sultanahmet Meydani', desc: 'Hipodrom kalintilari, Alman Cesmesi' },
+      { time: '14:30', title: 'Kapali Carsi', desc: '4.000+ dukkanda alisveris' },
+      { time: '16:30', title: 'Misir Carsisi', desc: 'Baharatlar ve Turk lokumu' },
+      { time: '18:00', title: 'Galata Kulesi', desc: 'Panoramik Istanbul manzarasi' },
+      { time: '19:30', title: 'Istiklal Caddesi', desc: 'Aksam yuruyusu ve yemek' },
+      { time: '10:00', title: 'Bogaz Turu', desc: 'Eminonu-Anadolu Kavagi tekne turu' },
+      { time: '13:00', title: 'Ortakoy', desc: 'Kumpir ve Bogaz manzarasi' },
+      { time: '15:00', title: 'Dolmabahce Sarayi', desc: 'Son Osmanli sarayi, kristal avize' },
+      { time: '17:00', title: 'Bebek Sahili', desc: 'Cay ve manzara' },
+      { time: '19:00', title: 'Kadikoy', desc: 'Sokak lezzetleri turu' },
+      { time: '09:30', title: 'Suleymaniye Camii', desc: 'Mimar Sinan basyapiti' },
+      { time: '11:00', title: 'Balat & Fener', desc: 'Renkli sokaklar, tarihi kiliseler' },
+      { time: '14:00', title: 'Pierre Loti Tepesi', desc: 'Halic manzarasi, teleferik' },
+      { time: '16:00', title: 'Miniaturk', desc: 'Turkiye minyatur modelleri' },
+    ],
+    en: [
+      { time: '09:00', title: 'Topkapi Palace', desc: 'Ottoman imperial palace, Harem section' },
+      { time: '11:30', title: 'Hagia Sophia', desc: 'Byzantine and Ottoman architectural masterpiece' },
+      { time: '13:00', title: 'Sultanahmet Square', desc: 'Hippodrome remains, German Fountain' },
+      { time: '14:30', title: 'Grand Bazaar', desc: 'Shopping in 4,000+ shops' },
+      { time: '16:30', title: 'Spice Bazaar', desc: 'Spices and Turkish delight' },
+      { time: '18:00', title: 'Galata Tower', desc: 'Panoramic Istanbul views' },
+      { time: '19:30', title: 'Istiklal Avenue', desc: 'Evening walk and dinner' },
+      { time: '10:00', title: 'Bosphorus Cruise', desc: 'Eminonu to Anadolu Kavagi boat tour' },
+      { time: '13:00', title: 'Ortakoy', desc: 'Kumpir and Bosphorus views' },
+      { time: '15:00', title: 'Dolmabahce Palace', desc: 'Last Ottoman palace, crystal chandelier' },
+      { time: '17:00', title: 'Bebek Shore', desc: 'Tea and scenery' },
+      { time: '19:00', title: 'Kadikoy', desc: 'Street food tour' },
+      { time: '09:30', title: 'Suleymaniye Mosque', desc: 'Sinan masterpiece' },
+      { time: '11:00', title: 'Balat & Fener', desc: 'Colorful streets, historic churches' },
+      { time: '14:00', title: 'Pierre Loti Hill', desc: 'Golden Horn views, cable car' },
+      { time: '16:00', title: 'Miniaturk', desc: 'Turkey miniature models' },
+    ]
+  },
+  AYT: {
+    tr: [
+      { time: '09:00', title: 'Kaleici Eski Sehir', desc: 'Dar sokaklar, Osmanli evleri, Hadriyan Kapisi' },
+      { time: '11:00', title: 'Antalya Muzesi', desc: 'Antik eserler, heykeller' },
+      { time: '13:00', title: 'Konyaalti Plaji', desc: 'Denize girin, gunes banyosu' },
+      { time: '15:30', title: 'Duden Selalesi', desc: 'Denize dokulen selale' },
+      { time: '18:00', title: 'Marina', desc: 'Aksam yemegi, tekne manzarasi' },
+      { time: '09:30', title: 'Olimpos Antik Kenti', desc: 'Orman icinde antik kalinti' },
+      { time: '12:00', title: 'Cirali Plaji', desc: 'Deniz ve kumsal' },
+      { time: '14:30', title: 'Yanartas (Chimera)', desc: 'Dogal yanarak gaz alevleri' },
+      { time: '17:00', title: 'Phaselis Antik Kenti', desc: 'Uc limani olan antik sehir' },
+      { time: '19:00', title: 'Lara Caddesi', desc: 'Aksam yemegi ve alisveris' },
+      { time: '10:00', title: 'Termessos', desc: 'Dag zirvesindeki antik sehir' },
+      { time: '14:00', title: 'Kursunlu Selalesi', desc: 'Dogal yuzme havuzu' },
+    ],
+    en: [
+      { time: '09:00', title: 'Kaleici Old Town', desc: 'Narrow streets, Ottoman houses, Hadrian Gate' },
+      { time: '11:00', title: 'Antalya Museum', desc: 'Ancient artifacts, sculptures' },
+      { time: '13:00', title: 'Konyaalti Beach', desc: 'Swimming, sunbathing' },
+      { time: '15:30', title: 'Duden Waterfall', desc: 'Waterfall falling into the sea' },
+      { time: '18:00', title: 'Marina', desc: 'Dinner, boat views' },
+      { time: '09:30', title: 'Olympos Ancient City', desc: 'Forest ruins' },
+      { time: '12:00', title: 'Cirali Beach', desc: 'Sea and sand' },
+      { time: '14:30', title: 'Chimaera Flames', desc: 'Natural gas flames' },
+      { time: '17:00', title: 'Phaselis Ancient City', desc: 'Three harbors ancient city' },
+      { time: '19:00', title: 'Lara Street', desc: 'Dinner and shopping' },
+      { time: '10:00', title: 'Termessos', desc: 'Mountaintop ancient city' },
+      { time: '14:00', title: 'Kursunlu Waterfall', desc: 'Natural swimming pool' },
+    ]
+  },
+  NAV: {
+    tr: [
+      { time: '05:30', title: 'Balon Turu', desc: 'Goreme uzerinde sicak hava balonu' },
+      { time: '09:00', title: 'Goreme Acik Hava Muzesi', desc: 'Kaya kiliseleri ve freskler' },
+      { time: '11:30', title: 'Uchisar Kalesi', desc: 'Kapadokya panoramasi' },
+      { time: '14:00', title: 'Avanos', desc: 'Seramik atolyesi, Kizilirmak' },
+      { time: '16:30', title: 'Pasabagi Peri Bacalari', desc: 'Ikiz ve uc basli peri bacalari' },
+      { time: '19:00', title: 'Urgup Saraplari', desc: 'Yerel sarap tadimi' },
+      { time: '09:00', title: 'Kaymakli Yeralti Sehri', desc: '8 katli antik yeralti sehri' },
+      { time: '12:00', title: 'Ihlara Vadisi', desc: 'Kanyon yuruyusu, kaya kiliseleri' },
+      { time: '15:00', title: 'Selime Manastiri', desc: 'Devasa kaya manastiri' },
+      { time: '17:30', title: 'Gul Vadisi Gunbatimi', desc: 'Fotografik manzara noktasi' },
+    ],
+    en: [
+      { time: '05:30', title: 'Hot Air Balloon', desc: 'Balloon ride over Goreme' },
+      { time: '09:00', title: 'Goreme Open Air Museum', desc: 'Rock churches and frescoes' },
+      { time: '11:30', title: 'Uchisar Castle', desc: 'Cappadocia panorama' },
+      { time: '14:00', title: 'Avanos', desc: 'Pottery workshop, Red River' },
+      { time: '16:30', title: 'Pasabag Fairy Chimneys', desc: 'Twin and triple fairy chimneys' },
+      { time: '19:00', title: 'Urgup Wines', desc: 'Local wine tasting' },
+      { time: '09:00', title: 'Kaymakli Underground City', desc: '8-floor ancient underground city' },
+      { time: '12:00', title: 'Ihlara Valley', desc: 'Canyon walk, rock churches' },
+      { time: '15:00', title: 'Selime Monastery', desc: 'Massive rock monastery' },
+      { time: '17:30', title: 'Rose Valley Sunset', desc: 'Photographic viewpoint' },
+    ]
+  },
+  KZR: {
+    tr: [
+      { time: '09:00', title: 'Antiphellos Antik Tiyatro', desc: 'Deniz manzarali antik tiyatro' },
+      { time: '11:00', title: 'Kekova Tekne Turu', desc: 'Batan sehir, Simena kalesi' },
+      { time: '14:00', title: 'Mavi Magaralar', desc: 'Yuzme ve snorkeling' },
+      { time: '16:00', title: 'Kas Carsisi', desc: 'Butik dukkanlar ve kafeler' },
+      { time: '19:00', title: 'Balik Restorani', desc: 'Taze Akdeniz yemekleri' },
+      { time: '09:30', title: 'Patara Plaji', desc: '18 km uzunlugunde kumsal' },
+      { time: '13:00', title: 'Patara Antik Kenti', desc: 'Meclis binasi, antik liman' },
+      { time: '15:00', title: 'Kalkan', desc: 'Sahil kasabasi gezisi' },
+      { time: '17:30', title: 'Likya Yolu Yuruyusu', desc: 'Kisa parkur yuruyusu' },
+      { time: '09:00', title: 'Tupleme Dalis', desc: 'Akdeniz alti dalis deneyimi' },
+      { time: '13:00', title: 'Hidayet Koyu', desc: 'Sakli cennet koyu' },
+      { time: '15:30', title: 'Kanyoning', desc: 'Kibris Kanyonu macerasi' },
+      { time: '09:00', title: 'Xanthos Antik Kenti', desc: 'UNESCO dunya mirasi' },
+      { time: '11:30', title: 'Letoon Antik Kenti', desc: 'Leto kutsal alani' },
+      { time: '14:00', title: 'Saklikent Kanyonu', desc: 'Su icinde kanyon yuruyusu' },
+    ],
+    en: [
+      { time: '09:00', title: 'Antiphellos Theatre', desc: 'Ancient theatre with sea view' },
+      { time: '11:00', title: 'Kekova Boat Tour', desc: 'Sunken city, Simena castle' },
+      { time: '14:00', title: 'Blue Caves', desc: 'Swimming and snorkeling' },
+      { time: '16:00', title: 'Kas Market', desc: 'Boutique shops and cafes' },
+      { time: '19:00', title: 'Fish Restaurant', desc: 'Fresh Mediterranean cuisine' },
+      { time: '09:30', title: 'Patara Beach', desc: '18 km long beach' },
+      { time: '13:00', title: 'Patara Ancient City', desc: 'Parliament building, ancient harbor' },
+      { time: '15:00', title: 'Kalkan', desc: 'Coastal town visit' },
+      { time: '17:30', title: 'Lycian Way Walk', desc: 'Short trail walk' },
+      { time: '09:00', title: 'Scuba Diving', desc: 'Mediterranean diving experience' },
+      { time: '13:00', title: 'Hidayet Bay', desc: 'Hidden paradise bay' },
+      { time: '15:30', title: 'Canyoning', desc: 'Kibris Canyon adventure' },
+      { time: '09:00', title: 'Xanthos Ancient City', desc: 'UNESCO world heritage' },
+      { time: '11:30', title: 'Letoon Ancient City', desc: 'Leto sanctuary' },
+      { time: '14:00', title: 'Saklikent Canyon', desc: 'Canyon walk through water' },
+    ]
+  },
+  DLM: {
+    tr: [
+      { time: '09:00', title: 'Oludeniz Plaji', desc: 'Mavi Lagunu, turkuaz deniz' },
+      { time: '11:00', title: 'Yamagli Parasutu', desc: 'Babadag dan ucus (1960m)' },
+      { time: '14:00', title: 'Butterfly Valley', desc: 'Kelebek Vadisi tekne turu' },
+      { time: '17:00', title: 'Fethiye Carsisi', desc: 'Balik pazari ve lokantalar' },
+      { time: '19:00', title: 'Paspatur', desc: 'Eski sehir sokaklari, hediyelik' },
+      { time: '09:30', title: 'Kaya Koyu', desc: 'Terk edilmis Rum koyu' },
+      { time: '11:30', title: 'Amintas Kaya Mezarlari', desc: 'MO 4. yuzyil kaya mezarlari' },
+      { time: '14:00', title: '12 Adalar Tekne Turu', desc: 'Koylara yuzme molalari' },
+      { time: '18:00', title: 'Calis Plaji', desc: 'Gunbatimi izleme' },
+      { time: '09:00', title: 'Dalyan Tekne Turu', desc: 'Kaunos, Iztuzu, camur banyosu' },
+      { time: '14:00', title: 'Iztuzu Plaji', desc: 'Caretta caretta kumsal' },
+      { time: '16:30', title: 'Kaunos Antik Kenti', desc: 'Antik tiyatro ve hamam' },
+    ],
+    en: [
+      { time: '09:00', title: 'Oludeniz Beach', desc: 'Blue Lagoon, turquoise sea' },
+      { time: '11:00', title: 'Paragliding', desc: 'Flight from Babadag (1960m)' },
+      { time: '14:00', title: 'Butterfly Valley', desc: 'Boat tour to the valley' },
+      { time: '17:00', title: 'Fethiye Market', desc: 'Fish market and restaurants' },
+      { time: '19:00', title: 'Paspatur', desc: 'Old town streets, souvenirs' },
+      { time: '09:30', title: 'Kayakoy', desc: 'Abandoned Greek village' },
+      { time: '11:30', title: 'Amintas Rock Tombs', desc: '4th century BC rock tombs' },
+      { time: '14:00', title: '12 Islands Boat Tour', desc: 'Swimming stops at bays' },
+      { time: '18:00', title: 'Calis Beach', desc: 'Sunset watching' },
+      { time: '09:00', title: 'Dalyan Boat Tour', desc: 'Kaunos, Iztuzu, mud bath' },
+      { time: '14:00', title: 'Iztuzu Beach', desc: 'Loggerhead turtle beach' },
+      { time: '16:30', title: 'Kaunos Ancient City', desc: 'Ancient theatre and baths' },
+    ]
+  },
+  GZT: {
+    tr: [
+      { time: '09:00', title: 'Zeugma Mozaik Muzesi', desc: 'Dunyanin en buyuk mozaik koleksiyonu' },
+      { time: '11:30', title: 'Bakircilar Carsisi', desc: 'Geleneksel el sanatlari' },
+      { time: '13:00', title: 'Antep Mutfagi Turu', desc: 'Baklava, kebap, katmer' },
+      { time: '15:00', title: 'Gaziantep Kalesi', desc: 'Kale ve savunma muzesi' },
+      { time: '17:00', title: 'Hamam Deneyimi', desc: 'Tarihi Turk hamami' },
+    ],
+    en: [
+      { time: '09:00', title: 'Zeugma Mosaic Museum', desc: 'World largest mosaic collection' },
+      { time: '11:30', title: 'Coppersmith Bazaar', desc: 'Traditional handicrafts' },
+      { time: '13:00', title: 'Antep Food Tour', desc: 'Baklava, kebab, katmer' },
+      { time: '15:00', title: 'Gaziantep Castle', desc: 'Castle and defense museum' },
+      { time: '17:00', title: 'Hamam Experience', desc: 'Historic Turkish bath' },
+    ]
+  },
+  GNY: {
+    tr: [
+      { time: '06:00', title: 'Gobeklitepe', desc: '12.000 yillik dunyanin en eski tapinagi' },
+      { time: '10:00', title: 'Balikligol', desc: 'Kutsal baliklar, Hz. Ibrahim magarasi' },
+      { time: '12:30', title: 'Urfa Cig Koftecisi', desc: 'Geleneksel Urfa cig kofte' },
+      { time: '14:30', title: 'Harran Evleri', desc: 'Kubbe evler, antik universite' },
+      { time: '17:00', title: 'Urfa Carsisi', desc: 'Gumrukhan, el sanatlari' },
+      { time: '09:00', title: 'Sogmatar Antik Kenti', desc: 'Yildiz tapinagi ve kaya mezarlari' },
+      { time: '12:00', title: 'Halfeti Tekne Turu', desc: 'Batan sehir Savasin, siyah guller' },
+      { time: '15:30', title: 'Rumkale', desc: 'Firat kiyisinda antik kale' },
+    ],
+    en: [
+      { time: '06:00', title: 'Gobeklitepe', desc: '12,000-year-old oldest temple on earth' },
+      { time: '10:00', title: 'Balikligol', desc: 'Sacred fish, Abraham cave' },
+      { time: '12:30', title: 'Urfa Cig Kofte', desc: 'Traditional Urfa raw meatball' },
+      { time: '14:30', title: 'Harran Houses', desc: 'Beehive houses, ancient university' },
+      { time: '17:00', title: 'Urfa Bazaar', desc: 'Gumrukhan, handicrafts' },
+      { time: '09:00', title: 'Sogmatar Ancient City', desc: 'Star temple and rock tombs' },
+      { time: '12:00', title: 'Halfeti Boat Tour', desc: 'Sunken city, black roses' },
+      { time: '15:30', title: 'Rumkale', desc: 'Ancient castle on Euphrates' },
+    ]
+  },
+  MQM: {
+    tr: [
+      { time: '09:00', title: 'Mardin Eski Sehir', desc: 'Tas evler, Mezopotamya manzarasi' },
+      { time: '11:00', title: 'Deyrulzafaran Manastiri', desc: '5. yuzyil Suryanice manastir' },
+      { time: '13:00', title: 'Mardin Mutfagi', desc: 'Kaburga dolma, kibbe' },
+      { time: '15:00', title: 'Midyat', desc: 'Telkari gumusculer, Mor Gabriel' },
+      { time: '18:00', title: 'Gunbatimi Terasi', desc: 'Mezopotamya ovasina bakan teras' },
+      { time: '09:30', title: 'Kasimiye Medresesi', desc: 'Selcuklu medresesi ve avlusu' },
+      { time: '11:30', title: 'Mardin Muzesi', desc: 'Arkeoloji ve etnografya' },
+      { time: '14:00', title: 'Dara Antik Kenti', desc: 'Yeralt sarnici, antik sehir' },
+    ],
+    en: [
+      { time: '09:00', title: 'Mardin Old City', desc: 'Stone houses, Mesopotamia views' },
+      { time: '11:00', title: 'Deyrulzafaran Monastery', desc: '5th century Syriac monastery' },
+      { time: '13:00', title: 'Mardin Cuisine', desc: 'Kaburga dolma, kibbe' },
+      { time: '15:00', title: 'Midyat', desc: 'Filigree silver, Mor Gabriel' },
+      { time: '18:00', title: 'Sunset Terrace', desc: 'Terrace overlooking Mesopotamia plain' },
+      { time: '09:30', title: 'Kasimiye Madrasa', desc: 'Seljuk madrasa and courtyard' },
+      { time: '11:30', title: 'Mardin Museum', desc: 'Archaeology and ethnography' },
+      { time: '14:00', title: 'Dara Ancient City', desc: 'Underground cistern, ancient city' },
+    ]
+  },
+  ADF: {
+    tr: [
+      { time: '04:00', title: 'Nemrut Dagi Gun Dogumu', desc: 'Tanri heykelleri arasinda gun dogumu' },
+      { time: '09:00', title: 'Arsameia Antik Kenti', desc: 'Komagene kralligi kalintilari' },
+      { time: '11:00', title: 'Cendere Koprusu', desc: 'Roma donemi tash kopru' },
+      { time: '13:00', title: 'Kahta Kalesi', desc: 'Yeni Kale panoramik manzara' },
+      { time: '15:30', title: 'Perre Antik Kenti', desc: 'Kaya mezarlari ve mozaikler' },
+      { time: '09:00', title: 'Ataturk Baraji', desc: 'Dunyanin en buyuk baraj gollerinden' },
+      { time: '12:00', title: 'Adiyaman Muzesi', desc: 'Komagene eserleri' },
+      { time: '15:00', title: 'Nemrut Dagi Gun Batimi', desc: 'Heykeller onunde gun batimi' },
+    ],
+    en: [
+      { time: '04:00', title: 'Nemrut Sunrise', desc: 'Sunrise among god statues' },
+      { time: '09:00', title: 'Arsameia Ancient City', desc: 'Commagene kingdom remains' },
+      { time: '11:00', title: 'Cendere Bridge', desc: 'Roman era stone bridge' },
+      { time: '13:00', title: 'Kahta Castle', desc: 'Yeni Kale panoramic view' },
+      { time: '15:30', title: 'Perre Ancient City', desc: 'Rock tombs and mosaics' },
+      { time: '09:00', title: 'Ataturk Dam', desc: 'One of the largest dam lakes' },
+      { time: '12:00', title: 'Adiyaman Museum', desc: 'Commagene artifacts' },
+      { time: '15:00', title: 'Nemrut Sunset', desc: 'Sunset at the statues' },
+    ]
+  },
+  ADB: {
+    tr: [
+      { time: '09:00', title: 'Efes Antik Kenti', desc: 'Celsus Kutuphanesi, buyuk tiyatro' },
+      { time: '12:00', title: 'Selcuk', desc: 'Artemis Tapinagi, Isabey Camii' },
+      { time: '14:00', title: 'Sirince Koyu', desc: 'Meyve saraplari, Rum evleri' },
+      { time: '16:30', title: 'Cesme', desc: 'Plaj ve ruzgar sorfu' },
+      { time: '19:00', title: 'Alacati', desc: 'Tas sokaklar, gurme restoranlar' },
+      { time: '09:30', title: 'Izmir Saat Kulesi', desc: 'Konak Meydani ikonu' },
+      { time: '11:00', title: 'Kemeralti Carsisi', desc: 'Tarihi pazar, lokumlar' },
+      { time: '13:30', title: 'Kordon Boyu', desc: 'Deniz kenari yuruyus' },
+      { time: '15:30', title: 'Asansor', desc: 'Tarihi asansor, manzara' },
+    ],
+    en: [
+      { time: '09:00', title: 'Ephesus Ancient City', desc: 'Celsus Library, great theatre' },
+      { time: '12:00', title: 'Selcuk', desc: 'Temple of Artemis, Isabey Mosque' },
+      { time: '14:00', title: 'Sirince Village', desc: 'Fruit wines, Greek houses' },
+      { time: '16:30', title: 'Cesme', desc: 'Beach and windsurfing' },
+      { time: '19:00', title: 'Alacati', desc: 'Stone streets, gourmet restaurants' },
+      { time: '09:30', title: 'Izmir Clock Tower', desc: 'Konak Square icon' },
+      { time: '11:00', title: 'Kemeralti Bazaar', desc: 'Historic market, lokum' },
+      { time: '13:30', title: 'Kordon Promenade', desc: 'Seaside walk' },
+      { time: '15:30', title: 'Asansor', desc: 'Historic elevator, views' },
+    ]
+  },
+  DNZ: {
+    tr: [
+      { time: '09:00', title: 'Pamukkale Travertenleri', desc: 'Beyaz travertenler, termal havuzlar' },
+      { time: '11:30', title: 'Hierapolis Antik Kenti', desc: 'Roma hamamlari, nekropol' },
+      { time: '14:00', title: 'Kleopatra Havuzu', desc: 'Antik sutunlar arasinda yuzme' },
+      { time: '16:00', title: 'Laodikeia', desc: '7 kiliseden biri, antik kalinti' },
+      { time: '09:30', title: 'Afrodisias', desc: 'UNESCO, stadyum, tapina' },
+      { time: '14:00', title: 'Kaklik Magarasi', desc: 'Yeralti Pamukkale' },
+    ],
+    en: [
+      { time: '09:00', title: 'Pamukkale Travertines', desc: 'White travertines, thermal pools' },
+      { time: '11:30', title: 'Hierapolis Ancient City', desc: 'Roman baths, necropolis' },
+      { time: '14:00', title: 'Cleopatra Pool', desc: 'Swimming among ancient columns' },
+      { time: '16:00', title: 'Laodicea', desc: 'One of seven churches, ancient ruins' },
+      { time: '09:30', title: 'Aphrodisias', desc: 'UNESCO, stadium, temple' },
+      { time: '14:00', title: 'Kaklik Cave', desc: 'Underground Pamukkale' },
+    ]
+  },
+  BJV: {
+    tr: [
+      { time: '09:00', title: 'Bergama Akropolu', desc: 'Zeus Sunagi, tiyatro, gymnasium' },
+      { time: '11:30', title: 'Asklepion', desc: 'Antik saglik merkezi' },
+      { time: '14:00', title: 'Bergama Muzesi', desc: 'Arkeolojik eserler' },
+    ],
+    en: [
+      { time: '09:00', title: 'Pergamon Acropolis', desc: 'Zeus Altar, theatre, gymnasium' },
+      { time: '11:30', title: 'Asclepion', desc: 'Ancient healing center' },
+      { time: '14:00', title: 'Pergamon Museum', desc: 'Archaeological artifacts' },
+    ]
+  },
+  ASR: {
+    tr: [
+      { time: '09:00', title: 'Ihlara Vadisi', desc: 'Kanyon yuruyusu, freskli kiliseler' },
+      { time: '13:00', title: 'Soganli Vadisi', desc: 'Sessiz kaya kiliseleri' },
+      { time: '16:00', title: 'Kayseri Kalesi', desc: 'Sehir merkezi tarihi kale' },
+      { time: '18:00', title: 'Mantici Turu', desc: 'Kayseri mantisi ve pastirmasi' },
+    ],
+    en: [
+      { time: '09:00', title: 'Ihlara Valley', desc: 'Canyon walk, frescoed churches' },
+      { time: '13:00', title: 'Soganli Valley', desc: 'Quiet rock churches' },
+      { time: '16:00', title: 'Kayseri Castle', desc: 'Historic castle in city center' },
+      { time: '18:00', title: 'Manti Tour', desc: 'Kayseri manti and pastirma' },
+    ]
+  },
+  TZX: {
+    tr: [
+      { time: '09:00', title: 'Sumela Manastiri', desc: 'Kayaliklara oyulmus Bizans manastiri' },
+      { time: '13:00', title: 'Uzungol', desc: 'Dag golu, yayla manzarasi' },
+      { time: '16:00', title: 'Trabzon Kalesi', desc: 'Tarihi kale surlar' },
+      { time: '18:00', title: 'Akdeniz Pidesi', desc: 'Trabzon pidesi ve kuymagi' },
+      { time: '09:30', title: 'Ayasofya Muzesi', desc: 'Trabzon Ayasofyasi' },
+      { time: '11:00', title: 'Boztepe', desc: 'Sehir panoramasi, cay bahcesi' },
+    ],
+    en: [
+      { time: '09:00', title: 'Sumela Monastery', desc: 'Byzantine monastery carved into cliffs' },
+      { time: '13:00', title: 'Uzungol', desc: 'Mountain lake, highland views' },
+      { time: '16:00', title: 'Trabzon Castle', desc: 'Historic castle walls' },
+      { time: '18:00', title: 'Black Sea Pide', desc: 'Trabzon pide and kuymak' },
+      { time: '09:30', title: 'Hagia Sophia Museum', desc: 'Trabzon Hagia Sophia' },
+      { time: '11:00', title: 'Boztepe', desc: 'City panorama, tea garden' },
+    ]
+  },
+  RZE: {
+    tr: [
+      { time: '09:00', title: 'Ayder Yaylasi', desc: 'Sicak su kaynaklari, dag manzarasi' },
+      { time: '12:00', title: 'Camlihemsin', desc: 'Tarihi kemerli kopruler' },
+      { time: '14:30', title: 'Firtina Vadisi', desc: 'Rafting ve kanyon turu' },
+      { time: '17:00', title: 'Cay Fabrikasi Turu', desc: 'Cay hasat ve uretim sureci' },
+      { time: '09:30', title: 'Zilkale', desc: 'Sis icinde ortacag kalesi' },
+      { time: '12:00', title: 'Palovit Selalesi', desc: 'Yesil orman icinde selale' },
+      { time: '14:00', title: 'Pokut Yaylasi', desc: '2000m yukseklikte yayla yasami' },
+      { time: '09:00', title: 'Senyuva Kopruleri', desc: 'Osmanli donemi tash kopruler' },
+      { time: '11:00', title: 'Rize Cay Bahceleri', desc: 'Yesil tepelerde cay toplama' },
+      { time: '14:00', title: 'Ikizdere Vadisi', desc: 'Dogal guzellikler, trekking' },
+      { time: '16:30', title: 'Hemsin Yoresel Yemekleri', desc: 'Muhlama, Hemsin boregi' },
+    ],
+    en: [
+      { time: '09:00', title: 'Ayder Plateau', desc: 'Hot springs, mountain views' },
+      { time: '12:00', title: 'Camlihemsin', desc: 'Historic arch bridges' },
+      { time: '14:30', title: 'Firtina Valley', desc: 'Rafting and canyon tour' },
+      { time: '17:00', title: 'Tea Factory Tour', desc: 'Tea harvest and production' },
+      { time: '09:30', title: 'Zilkale', desc: 'Medieval castle in the mist' },
+      { time: '12:00', title: 'Palovit Waterfall', desc: 'Waterfall in green forest' },
+      { time: '14:00', title: 'Pokut Plateau', desc: 'Highland life at 2000m' },
+      { time: '09:00', title: 'Senyuva Bridges', desc: 'Ottoman era stone bridges' },
+      { time: '11:00', title: 'Rize Tea Gardens', desc: 'Tea picking on green hills' },
+      { time: '14:00', title: 'Ikizdere Valley', desc: 'Natural beauty, trekking' },
+      { time: '16:30', title: 'Hemsin Local Food', desc: 'Muhlama, Hemsin pastry' },
+    ]
+  },
+  CKL: {
+    tr: [
+      { time: '08:00', title: 'Gelibolu Yarimadasi', desc: 'Anzac Koyu, Conkbayiri, Lone Pine' },
+      { time: '12:00', title: 'Sehitlik ve Anit', desc: 'Canakkale Sehitler Abidesi' },
+      { time: '14:30', title: 'Truva Antik Kenti', desc: 'Truva ati, kazi alani' },
+      { time: '17:00', title: 'Canakkale Saat Kulesi', desc: 'Sehir merkezi tarihi alan' },
+      { time: '19:00', title: 'Kordon', desc: 'Deniz kenarinda balik yemegi' },
+      { time: '09:00', title: 'Bozcaada', desc: 'Feribot ile ada gezisi, saraplar, plajlar' },
+      { time: '14:00', title: 'Bozcaada Kalesi', desc: 'Cenova kalesi ve muzeler' },
+    ],
+    en: [
+      { time: '08:00', title: 'Gallipoli Peninsula', desc: 'Anzac Cove, Chunuk Bair, Lone Pine' },
+      { time: '12:00', title: 'Memorial and Monument', desc: 'Canakkale Martyrs Memorial' },
+      { time: '14:30', title: 'Troy Ancient City', desc: 'Trojan horse, excavation site' },
+      { time: '17:00', title: 'Canakkale Clock Tower', desc: 'City center historic area' },
+      { time: '19:00', title: 'Kordon', desc: 'Seaside fish dinner' },
+      { time: '09:00', title: 'Bozcaada', desc: 'Island trip by ferry, wines, beaches' },
+      { time: '14:00', title: 'Bozcaada Castle', desc: 'Genoese castle and museums' },
+    ]
+  },
+};
+
+function buildTourDays(code, nights, lang) {
+  var pool = TOUR_ACTIVITIES[code];
+  if (!pool) return [];
+  var acts = pool[lang] || pool.tr || [];
+  var totalDays = nights + 1;
+  var days = [];
+  var actIdx = 0;
+  for (var d = 0; d < totalDays; d++) {
+    var dayActs = [];
+    var count = d === 0 ? 3 : (d === totalDays - 1 ? 2 : 4);
+    for (var a = 0; a < count && actIdx < acts.length; a++) {
+      dayActs.push(acts[actIdx]);
+      actIdx++;
+    }
+    if (actIdx >= acts.length) actIdx = 0;
+    days.push({
+      title: (lang === 'tr' ? 'Gun ' : 'Day ') + (d + 1),
+      activities: dayActs,
+    });
+  }
+  return days;
+}
+
+// ── WebTourMapScreen — Full tour map with day-by-day itinerary ────
+function WebTourMapScreen({ t, nav, booking }) {
+  var u = useThyTweaks(t, { dark: true });
+  var toast = useToast();
+  var stops = booking.tourStops || [];
+  var tourColor = booking.tourColor || '#B7312C';
+  var isTR = u.lang === 'tr';
+  var _as = React.useState(0), activeStop = _as[0], setActiveStop = _as[1];
+  var mapRef = React.useRef(null);
+  var mapInstance = React.useRef(null);
+  var markersRef = React.useRef([]);
+
+  var uniqueStops = [];
+  var _seen = {};
+  stops.forEach(function(s) { if (!_seen[s.code]) { _seen[s.code] = true; uniqueStops.push(s); } });
+
+  // Leaflet map
+  React.useEffect(function() {
+    if (!mapRef.current || !window.L || !uniqueStops.length) return;
+    mapRef.current.innerHTML = '';
+
+    var coords = uniqueStops.map(function(s) {
+      var c = (typeof CITY_CENTERS !== 'undefined' && CITY_CENTERS[s.code])
+        ? CITY_CENTERS[s.code] : { lat: 39.0, lon: 35.0 };
+      return [c.lat, c.lon];
+    });
+
+    var map = window.L.map(mapRef.current, {
+      center: [39.0, 35.0], zoom: 6,
+      zoomControl: false, attributionControl: true,
+    });
+    window.L.control.zoom({ position: 'topright' }).addTo(map);
+
+    window.L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+      attribution: '© OSM · © CARTO', maxZoom: 19, subdomains: 'abcd',
+    }).addTo(map);
+
+    mapInstance.current = map;
+
+    // fit bounds
+    if (coords.length > 1) {
+      map.fitBounds(coords, { padding: [50, 50] });
+    } else if (coords.length === 1) {
+      map.setView(coords[0], 10);
+    }
+
+    // polylines between stops
+    for (var i = 1; i < coords.length; i++) {
+      window.L.polyline([coords[i-1], coords[i]], {
+        color: tourColor, weight: 2, opacity: 0.6, dashArray: '8, 6',
+      }).addTo(map);
+    }
+
+    // markers
+    var markers = [];
+    coords.forEach(function(c, idx) {
+      var isActive = idx === activeStop;
+      var icon = window.L.divIcon({
+        className: '',
+        html: '<div style="width:36px;height:36px;border-radius:50%;background:'
+          + (isActive ? '#C5A059' : tourColor)
+          + ';border:2px solid #fff;display:flex;align-items:center;justify-content:center;'
+          + 'color:#fff;font-weight:700;font-size:14px;font-family:var(--font-mono);box-shadow:0 2px 8px rgba(0,0,0,0.4)">'
+          + (idx + 1) + '</div>',
+        iconSize: [36, 36],
+        iconAnchor: [18, 18],
+      });
+      var marker = window.L.marker(c, { icon: icon }).addTo(map);
+      marker.on('click', function() { setActiveStop(idx); });
+      markers.push({ marker: marker, idx: idx, coord: c });
+    });
+    markersRef.current = markers;
+
+    return function() { map.remove(); mapInstance.current = null; };
+  }, [uniqueStops.length]);
+
+  React.useEffect(function() {
+    if (!mapInstance.current || !window.L) return;
+    markersRef.current.forEach(function(m) {
+      var isActive = m.idx === activeStop;
+      m.marker.setIcon(window.L.divIcon({
+        className: '',
+        html: '<div style="width:36px;height:36px;border-radius:50%;background:'
+          + (isActive ? '#C5A059' : tourColor)
+          + ';border:2px solid #fff;display:flex;align-items:center;justify-content:center;'
+          + 'color:#fff;font-weight:700;font-size:14px;font-family:var(--font-mono);box-shadow:0 2px 8px rgba(0,0,0,0.4)">'
+          + (m.idx + 1) + '</div>',
+        iconSize: [36, 36],
+        iconAnchor: [18, 18],
+      }));
+    });
+    if (uniqueStops[activeStop]) {
+      var c = (typeof CITY_CENTERS !== 'undefined' && CITY_CENTERS[uniqueStops[activeStop].code])
+        ? CITY_CENTERS[uniqueStops[activeStop].code] : null;
+      if (c) mapInstance.current.flyTo([c.lat, c.lon], Math.max(mapInstance.current.getZoom(), 8), { animate: true, duration: 0.8 });
+    }
+  }, [activeStop]);
+
+  var cur = uniqueStops[activeStop];
+  var prev = activeStop > 0 ? uniqueStops[activeStop - 1] : null;
+  var transport = prev ? trGetTransport(prev.code, cur ? cur.code : '') : null;
+  var curDays = cur ? buildTourDays(cur.code, cur.nights, isTR ? 'tr' : 'en') : [];
+
+  return (
+    React.createElement(PageShell, { dark: true, style: { background: '#050B14' } },
+      React.createElement(WebTopNav, { active: 'map', onNavigate: nav, t: t, accent: u.accent, c: u.c, lang: u.lang, dark: true }),
+      React.createElement('div', { style: {
+        display: 'grid', gridTemplateColumns: '1fr 480px', height: 'calc(100vh - 64px)', minHeight: 720,
+      }},
+
+        // Map
+        React.createElement('div', { style: { position: 'relative', overflow: 'hidden', background: '#0A1628' } },
+          React.createElement('div', { ref: mapRef, style: { width: '100%', height: '100%' } }),
+
+          // Tour badge
+          React.createElement('div', { style: {
+            position: 'absolute', top: 24, left: 24, padding: '10px 16px',
+            background: 'rgba(10,22,40,0.9)', border: '1px solid ' + tourColor + '55',
+            borderRadius: 10, backdropFilter: 'blur(12px)',
+            display: 'flex', alignItems: 'center', gap: 10, color: '#fff',
+          }},
+            React.createElement('span', { style: { fontFamily: 'var(--font-mono)', fontWeight: 800, fontSize: 14, letterSpacing: 1.5, color: tourColor } },
+              '✈ ' + (booking.tourRoute || 'TURKIYE')),
+            React.createElement('div', { style: { width: 1, height: 18, background: 'rgba(255,255,255,0.15)' } }),
+            React.createElement('span', { style: { fontSize: 12, color: '#C5A059', fontStyle: 'italic' } },
+              booking.tourTitle || 'Turkiye Turu')
+          ),
+
+          // Transport banner
+          transport && React.createElement('div', { style: {
+            position: 'absolute', bottom: 24, left: 24, right: 24,
+            padding: '12px 18px',
+            background: transport.type === 'flight' ? 'rgba(183,49,44,0.9)' : 'rgba(197,160,89,0.9)',
+            borderRadius: 10, backdropFilter: 'blur(8px)',
+            display: 'flex', alignItems: 'center', gap: 12, color: '#fff',
+          }},
+            React.createElement('span', { style: { fontSize: 18 } }, transport.type === 'flight' ? '✈' : '🚐'),
+            React.createElement('div', null,
+              React.createElement('div', { style: { fontFamily: 'var(--font-mono)', fontWeight: 700, fontSize: 13, letterSpacing: 1 } },
+                transport.type === 'flight' ? transport.code : 'VIP Transfer'),
+              React.createElement('div', { style: { fontSize: 11, opacity: 0.9 } },
+                prev.city[isTR ? 'tr' : 'en'] + ' (' + prev.code + ') → ' + cur.city[isTR ? 'tr' : 'en'] + ' (' + cur.code + ')')
+            ),
+            React.createElement('span', { style: {
+              marginLeft: 'auto', fontFamily: 'var(--font-mono)', fontSize: 10,
+              padding: '3px 8px', background: 'rgba(255,255,255,0.2)', borderRadius: 4,
+            }}, transport.type === 'flight'
+              ? 'AnadoluJet · ' + transport.plane
+              : transport.distance + ' · ' + transport.duration)
+          )
+        ),
+
+        // Right panel
+        React.createElement('div', { style: {
+          background: '#0A1628', borderLeft: '1px solid rgba(197,160,89,0.15)',
+          display: 'flex', flexDirection: 'column', overflow: 'hidden',
+        }},
+
+          // Stop tabs
+          React.createElement('div', { style: {
+            display: 'flex', overflowX: 'auto', padding: '12px 16px', gap: 6,
+            borderBottom: '1px solid rgba(255,255,255,0.08)',
+          }},
+            uniqueStops.map(function(s, i) {
+              return React.createElement('button', {
+                key: s.code + i,
+                onClick: function() { setActiveStop(i); },
+                style: {
+                  padding: '8px 14px', borderRadius: 8, cursor: 'pointer',
+                  border: i === activeStop ? '1.5px solid ' + tourColor : '1.5px solid rgba(255,255,255,0.1)',
+                  background: i === activeStop ? tourColor + '22' : 'rgba(255,255,255,0.03)',
+                  color: i === activeStop ? '#C5A059' : '#8899AA',
+                  fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 600,
+                  letterSpacing: 1, whiteSpace: 'nowrap',
+                },
+              }, s.city[isTR ? 'tr' : 'en']);
+            })
+          ),
+
+          // Active stop content
+          cur && React.createElement('div', { style: { flex: 1, overflow: 'auto', padding: '20px 24px' } },
+
+            // City header
+            React.createElement('div', { style: { display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 4 } },
+              React.createElement('span', { style: {
+                width: 28, height: 28, borderRadius: '50%', background: tourColor,
+                display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                color: '#fff', fontWeight: 700, fontSize: 14,
+              } }, activeStop + 1),
+              React.createElement('span', { style: {
+                fontFamily: "'Playfair Display', serif", fontWeight: 700, fontSize: 28,
+                color: '#fff', letterSpacing: -1,
+              } }, cur.city[isTR ? 'tr' : 'en']),
+              React.createElement('span', { style: {
+                fontFamily: 'var(--font-mono)', fontSize: 12, color: tourColor,
+                letterSpacing: 1.5, fontWeight: 700,
+              } }, cur.code)
+            ),
+
+            React.createElement('div', { style: {
+              fontFamily: 'var(--font-mono)', fontSize: 11, color: '#8899AA',
+              letterSpacing: 1, marginBottom: 16,
+            } },
+              cur.nights + (isTR ? ' gece / ' : ' nights / ') + (cur.nights + 1) + (isTR ? ' gun' : ' days')
+              + ' · ' + cur.time + (isTR ? ' varis' : ' arrival')
+              + (cur.startDate ? ' · ' + new Date(cur.startDate).toLocaleDateString(isTR ? 'tr-TR' : 'en-US', { day: 'numeric', month: 'short' }) : '')
+              + (TR_AIRPORTS[cur.code] ? ' · ✈ ' + TR_AIRPORTS[cur.code] : ' · 🚐 VIP Transfer')
+            ),
+
+            // Transport from previous
+            transport && React.createElement('div', { style: {
+              padding: '12px 16px',
+              background: transport.type === 'flight' ? 'rgba(183,49,44,0.08)' : 'rgba(197,160,89,0.08)',
+              border: '1px solid ' + (transport.type === 'flight' ? 'rgba(183,49,44,0.25)' : 'rgba(197,160,89,0.25)'),
+              borderRadius: 10, marginBottom: 16,
+            }},
+              React.createElement('div', { style: {
+                fontFamily: 'var(--font-mono)', fontSize: 9, letterSpacing: 2,
+                color: transport.type === 'flight' ? '#B7312C' : '#C5A059', fontWeight: 700, marginBottom: 6,
+              }}, transport.type === 'flight' ? '✈ AnadoluJet IC HAT UCUSU' : '🚐 VIP TRANSFER'),
+              React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: '#E8E0D0' } },
+                transport.type === 'flight' && React.createElement('span', { style: { fontWeight: 700, color: '#B7312C' } }, transport.code),
+                React.createElement('span', null, prev.city[isTR ? 'tr' : 'en'] + ' → ' + cur.city[isTR ? 'tr' : 'en'])
+              ),
+              React.createElement('div', { style: { display: 'flex', gap: 12, marginTop: 6, fontFamily: 'var(--font-mono)', fontSize: 10, color: '#8899AA' } },
+                transport.type === 'flight' && React.createElement('span', null, '🛩 ' + transport.plane),
+                React.createElement('span', null, '⏱ ' + transport.duration),
+                transport.distance && React.createElement('span', null, '📍 ' + transport.distance)
+              )
+            ),
+
+            // Day-by-day itinerary
+            curDays.length > 0 && React.createElement('div', { style: { marginBottom: 16 } },
+              React.createElement('div', { style: {
+                fontFamily: 'var(--font-mono)', fontSize: 9, letterSpacing: 2,
+                color: '#C5A059', fontWeight: 700, marginBottom: 12,
+              }}, '✦ ' + (isTR ? 'GUN GUN ROTA REHBERI' : 'DAY BY DAY GUIDE')),
+
+              curDays.map(function(day, di) {
+                return React.createElement('div', { key: di, style: {
+                  marginBottom: 14, padding: '12px 14px',
+                  background: 'rgba(255,255,255,0.03)', borderRadius: 8,
+                  borderLeft: '3px solid ' + tourColor,
+                }},
+                  React.createElement('div', { style: {
+                    display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8,
+                    fontFamily: "'Playfair Display', serif", fontWeight: 700, fontSize: 14, color: '#E8E0D0',
+                  }},
+                    React.createElement('span', null, di === 0 ? '✈️' : (di === curDays.length - 1 ? '🏠' : '☀️')),
+                    React.createElement('span', null, day.title),
+                    cur.startDate && React.createElement('span', { style: { fontFamily: 'var(--font-mono)', fontSize: 10, color: '#8899AA', fontWeight: 400 } },
+                      (function() {
+                        var d = new Date(cur.startDate);
+                        d.setDate(d.getDate() + di);
+                        return d.toLocaleDateString(isTR ? 'tr-TR' : 'en-US', { day: 'numeric', month: 'short' });
+                      })()
+                    )
+                  ),
+
+                  day.activities.map(function(act, ai) {
+                    return React.createElement('div', { key: ai, style: {
+                      display: 'flex', gap: 10, padding: '5px 0', marginLeft: 8,
+                      borderLeft: '1px solid rgba(197,160,89,0.2)', paddingLeft: 12,
+                    }},
+                      React.createElement('span', { style: { fontFamily: 'var(--font-mono)', fontSize: 10, color: '#C5A059', minWidth: 40 } },
+                        act.time),
+                      React.createElement('div', null,
+                        React.createElement('div', { style: { fontSize: 12, fontWeight: 600, color: '#E8E0D0' } },
+                          act.title),
+                        act.desc && React.createElement('div', { style: { fontSize: 11, color: '#8899AA', marginTop: 2 } },
+                          act.desc)
+                      )
+                    );
+                  })
+                );
+              })
+            ),
+
+            // Navigation
+            React.createElement('div', { style: { display: 'flex', gap: 8, marginTop: 16 } },
+              React.createElement('button', {
+                onClick: function() { setActiveStop(Math.max(0, activeStop - 1)); },
+                disabled: activeStop === 0,
+                style: {
+                  flex: 1, padding: '12px', borderRadius: 8, cursor: activeStop === 0 ? 'default' : 'pointer',
+                  background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)',
+                  color: activeStop === 0 ? '#333' : '#C5A059',
+                  fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 600,
+                },
+              }, '← ' + (isTR ? 'Onceki' : 'Previous')),
+              React.createElement('button', {
+                onClick: function() { setActiveStop(Math.min(uniqueStops.length - 1, activeStop + 1)); },
+                disabled: activeStop === uniqueStops.length - 1,
+                style: {
+                  flex: 1, padding: '12px', borderRadius: 8,
+                  cursor: activeStop === uniqueStops.length - 1 ? 'default' : 'pointer',
+                  background: activeStop < uniqueStops.length - 1 ? tourColor + '22' : 'rgba(255,255,255,0.04)',
+                  border: '1px solid ' + (activeStop < uniqueStops.length - 1 ? tourColor + '55' : 'rgba(255,255,255,0.1)'),
+                  color: activeStop < uniqueStops.length - 1 ? '#C5A059' : '#333',
+                  fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 600,
+                },
+              }, (isTR ? 'Sonraki' : 'Next') + ' →')
+            ),
+
+            // Stats
+            React.createElement('div', { style: {
+              marginTop: 16, padding: '12px 16px',
+              background: 'rgba(197,160,89,0.06)', borderRadius: 8,
+              display: 'flex', justifyContent: 'space-between',
+              fontFamily: 'var(--font-mono)', fontSize: 10, color: '#8899AA', letterSpacing: 1,
+            }},
+              React.createElement('span', null, uniqueStops.length + (isTR ? ' DURAK' : ' STOPS')),
+              React.createElement('span', null, stops.reduce(function(s, x) { return s + x.nights; }, 0) + (isTR ? ' GECE' : ' NIGHTS')),
+              React.createElement('span', null, curDays.length + (isTR ? ' GUN' : ' DAYS'))
+            )
+          )
+        )
+      )
+    )
+  );
+}
+
 Object.assign(window, {
   WebMapScreen, WebCoPilotScreen, WebMilesScreen, WebNotificationsScreen, WebProfileScreen,
+  WebTourMapScreen,
 });
