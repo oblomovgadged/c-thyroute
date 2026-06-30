@@ -32,6 +32,8 @@
 **Tek dosya, sıfır kurulum:** Tüm HTML'ler tek başlarına çalışır (CDN + design system token'ları). İndir, çift tıkla, demo açılır.
 
 > 🔗 **Canlı Demo:** https://oblomovgadged.github.io/c-thyroute/
+>
+> 🌐 **Demo Web Sitesi:** https://c-thyroute-web.vercel.app/
 
 ---
 
@@ -43,6 +45,7 @@
 | 2 | **Thy Route Giriş** | [YouTube ↗](https://youtu.be/PPR7k1wTdmA) |
 | 3 | **Thy Route Web Prototip** | [YouTube ↗](https://youtu.be/eLCL5oCml_Q) |
 | 4 | **Thy Route Mobil Prototip** | [YouTube ↗](https://youtu.be/qh3ppPFBKAE) |
+| 5 | **Thy Route Web Sitesi Goruntulu Anlatim** | [YouTube ↗](https://youtu.be/vyXvWY4s1sw) |
 
 ---
 
