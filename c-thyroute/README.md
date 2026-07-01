@@ -45,7 +45,7 @@
 | 2 | **Thy Route Giriş** | [YouTube ↗](https://youtu.be/PPR7k1wTdmA) |
 | 3 | **Thy Route Web Prototip** | [YouTube ↗](https://youtu.be/eLCL5oCml_Q) |
 | 4 | **Thy Route Mobil Prototip** | [YouTube ↗](https://youtu.be/qh3ppPFBKAE) |
-| 5 | **Thy Route Web Sitesi Goruntulu Anlatim** | [YouTube ↗](https://youtu.be/vyXvWY4s1sw) |
+| 5 | **Thy Route Web Sitesi Goruntulu Anlatim** | [YouTube ↗](https://www.youtube.com/watch?v=4Nj5Oezev5o) |
 
 ---
 
